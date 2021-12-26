@@ -1,4 +1,5 @@
 #include "rs-options/options.hpp"
+#include "rs-format/enum.hpp"
 #include "rs-format/format.hpp"
 #include "rs-format/terminal.hpp"
 #include "rs-unit-test.hpp"
@@ -11,6 +12,8 @@
 
 using namespace RS::Format;
 using namespace RS::Options;
+
+RS_DEFINE_ENUM_CLASS(MyEnum, int, 0, alpha, bravo, charlie)
 
 void test_rs_options_type_traits() {
 
@@ -39,18 +42,21 @@ void test_rs_options_type_traits() {
     TEST(is_scalar_argument_type<double>);
     TEST(is_scalar_argument_type<long double>);
     TEST(is_scalar_argument_type<std::string>);
+    TEST(is_scalar_argument_type<MyEnum>);
     TEST(! is_scalar_argument_type<std::vector<int>>);
     TEST(! is_scalar_argument_type<std::vector<std::string>>);
 
     TEST(! is_container_argument_type<void>);
     TEST(! is_container_argument_type<int>);
     TEST(! is_container_argument_type<std::string>);
+    TEST(! is_container_argument_type<MyEnum>);
     TEST(is_container_argument_type<std::vector<int>>);
     TEST(is_container_argument_type<std::vector<std::string>>);
 
     TEST(! is_valid_argument_type<void>);
     TEST(is_valid_argument_type<int>);
     TEST(is_valid_argument_type<std::string>);
+    TEST(is_valid_argument_type<MyEnum>);
     TEST(is_valid_argument_type<std::vector<int>>);
     TEST(is_valid_argument_type<std::vector<std::string>>);
 
@@ -496,11 +502,88 @@ void test_rs_options_match_pattern() {
     {
         Options opt2 = opt1;
         std::ostringstream out;
-        TEST_THROW(opt2.parse({
+        TEST_THROW_MATCH(opt2.parse({
             "--hello", "Hellfire",
             "--goodbye", "Grinch",
         }, out),
-            std::invalid_argument);
+            std::invalid_argument, "Grinch");
+    }
+
+}
+
+void test_rs_options_enumeration_types() {
+
+    MyEnum m = MyEnum::alpha;
+    std::vector<MyEnum> v;
+
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
+    TRY(opt1.add(m, "my-enum", 'm', "My enum option"));
+    TRY(opt1.add(v, "enum-vector", 'v', "Enum vector option"));
+
+    {
+        Options opt2 = opt1;
+        TRY(opt2.auto_help());
+        std::ostringstream out;
+        TEST(! opt2.parse({}, out));
+        TEST_EQUAL(out.str(),
+            "\n"
+            "Hello\n"
+            "\n"
+            "Says hello.\n"
+            "\n"
+            "Options:\n"
+            "    --my-enum, -m <arg>          = My enum option (default alpha)\n"
+            "    --enum-vector, -v <arg> ...  = Enum vector option\n"
+            "    --help, -h                   = Show usage information\n"
+            "    --version                    = Show version information\n"
+            "\n"
+        );
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({}, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(! opt2.found("my-enum"));
+        TEST(! opt2.found("enum-vector"));
+        TEST_EQUAL(m, MyEnum::alpha);
+        TEST_EQUAL(format_range(v), "[]");
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "--my-enum", "bravo",
+            "--enum-vector", "alpha", "bravo", "charlie",
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("my-enum"));
+        TEST(opt2.found("enum-vector"));
+        TEST_EQUAL(m, MyEnum::bravo);
+        TEST_EQUAL(format_range(v), "[alpha,bravo,charlie]");
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST_THROW_MATCH(opt2.parse({
+            "--my-enum", "delta",
+            "--enum-vector", "alpha", "bravo", "charlie",
+        }, out),
+            std::invalid_argument, "delta");
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST_THROW_MATCH(opt2.parse({
+            "--my-enum", "bravo",
+            "--enum-vector", "alpha", "bravo", "charlie", "delta",
+        }, out),
+            std::invalid_argument, "delta");
     }
 
 }

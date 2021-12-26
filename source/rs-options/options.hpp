@@ -1,10 +1,12 @@
 #pragma once
 
+#include "rs-format/enum.hpp"
 #include "rs-format/format.hpp"
 #include "rs-format/string.hpp"
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <ostream>
 #include <regex>
 #include <string>
@@ -29,6 +31,7 @@ namespace RS::Options {
 
         template <typename T> constexpr bool is_scalar_argument_type = (
             std::is_arithmetic_v<T>
+            || std::is_enum_v<T>
             || std::is_same_v<T, std::string>
             || (! HasBackInserter<T>::value
                 && (std::is_constructible_v<T, int>
@@ -50,7 +53,6 @@ namespace RS::Options {
 
     // TODO
     // * Mutually exclusive option groups
-    // * Enumeration valued options
 
     class Options {
 
@@ -76,12 +78,13 @@ namespace RS::Options {
     private:
 
         using setter_type = std::function<void(const std::string&)>;
+        using validator_type = std::function<bool(const std::string&)>;
 
         enum class mode { boolean, single, multiple };
 
         struct option_info {
             setter_type setter;
-            std::regex pattern;
+            validator_type validator;
             std::string name;
             std::string description;
             std::string placeholder;
@@ -101,15 +104,15 @@ namespace RS::Options {
         int colour_ = 0;
         bool auto_help_ = false;
 
-        void do_add(setter_type setter, const std::regex& pattern, const std::string& name, char abbrev,
+        void do_add(setter_type setter, validator_type validator, const std::string& name, char abbrev,
             const std::string& description, const std::string& placeholder, const std::string& default_value,
             mode kind, int flags);
         std::string format_help() const;
         size_t option_index(const std::string& name) const;
         size_t option_index(char abbrev) const;
 
-        template <typename T> static T parse_argument(const std::string& str);
-        template <typename T> static std::regex type_pattern();
+        template <typename T> static T parse_argument(const std::string& arg);
+        template <typename T> static validator_type type_validator(const std::string& name, const std::string& pattern);
         template <typename T> static std::string type_placeholder();
 
     };
@@ -124,10 +127,8 @@ namespace RS::Options {
 
             static_assert(is_valid_argument_type<T>, "Invalid command line argument type");
 
-            static const std::regex match_anything(".*");
-
             setter_type setter;
-            std::regex re = match_anything;
+            validator_type validator;
             std::string placeholder;
             std::string default_value;
             mode kind;
@@ -140,25 +141,17 @@ namespace RS::Options {
             } else if constexpr (is_scalar_argument_type<T>) {
 
                 setter = [&var] (const std::string& str) { var = parse_argument<T>(str); };
+                validator = type_validator<T>(name, pattern);
                 placeholder = type_placeholder<T>();
                 kind = mode::single;
 
-                if (! pattern.empty()) {
-                    if constexpr (std::is_same_v<T, std::string>) {
-                        re = std::regex(pattern);
-                        if (! std::regex_match(var, re))
-                            throw std::invalid_argument("Default value does not match pattern: {0:q}"_fmt("--" + name));
-                    } else {
-                        throw std::invalid_argument("Pattern is only allowed for string-valued options: {0:q}"_fmt("--" + name));
-                    }
-                }
+                if constexpr (std::is_same_v<T, std::string>)
+                    if (validator && ! validator(var))
+                        throw std::invalid_argument("Default value does not match pattern: {0:q}"_fmt("--" + name));
 
-                if constexpr (std::is_arithmetic_v<T>)
-                    re = type_pattern<T>();
-
-                if ((flags & required) == 0 && var != T()) {
+                if ((flags & required) == 0 && (std::is_enum_v<T> || var != T())) {
                     default_value = format_object(var);
-                    if constexpr (! std::is_arithmetic_v<T>)
+                    if constexpr (! std::is_arithmetic_v<T> && ! std::is_enum_v<T>)
                         if (! default_value.empty())
                             default_value = quote(default_value);
                 }
@@ -169,45 +162,73 @@ namespace RS::Options {
 
                 var.clear();
                 setter = [&var] (const std::string& str) { var.insert(var.end(), parse_argument<VT>(str)); };
-                re = type_pattern<VT>();
+                validator = type_validator<VT>(name, pattern);
                 placeholder = type_placeholder<VT>();
                 kind = mode::multiple;
 
             }
 
-            do_add(setter, re, name, abbrev, description, placeholder, default_value, kind, flags);
+            do_add(setter, validator, name, abbrev, description, placeholder, default_value, kind, flags);
 
             return *this;
 
         }
 
         template <typename T>
-        T Options::parse_argument(const std::string& str) {
+        T Options::parse_argument(const std::string& arg) {
             using namespace Detail;
             using namespace RS::Format;
+            using namespace RS::Format::Literals;
             static_assert(is_scalar_argument_type<T>);
-            if constexpr (std::is_same_v<T, std::string>)
-                return str;
-            else if constexpr (std::is_integral_v<T>)
-                return to_integer<T>(str);
-            else if constexpr (std::is_floating_point_v<T>)
-                return to_floating<T>(str);
-            else if constexpr (std::is_constructible_v<T, int>)
-                return static_cast<T>(to_int64(str));
-            else
-                return static_cast<T>(str);
+            if constexpr (std::is_enum_v<T>) {
+                T t;
+                if (! parse_enum(arg, t))
+                    throw std::invalid_argument("Invalid enumeration value: {0:q}"_fmt(arg));
+                return t;
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                return arg;
+            } else if constexpr (std::is_integral_v<T>) {
+                return to_integer<T>(arg);
+            } else if constexpr (std::is_floating_point_v<T>) {
+                return to_floating<T>(arg);
+            } else if constexpr (std::is_constructible_v<T, int>) {
+                return static_cast<T>(to_int64(arg));
+            } else {
+                return static_cast<T>(arg);
+            }
         }
 
         template <typename T>
-        std::regex Options::type_pattern() {
-            if constexpr (std::is_integral_v<T> && std::is_signed_v<T>)
-                return std::regex(R"([+-]?\d+)");
+        Options::validator_type Options::type_validator(const std::string& name, const std::string& pattern) {
+
+            using namespace RS::Format::Literals;
+
+            validator_type validator;
+            std::optional<std::regex> re;
+
+            if (! pattern.empty()) {
+                if constexpr (! std::is_same_v<T, std::string>)
+                    throw std::invalid_argument("Pattern is only allowed for string-valued options: {0:q}"_fmt("--" + name));
+                re = std::regex(pattern);
+            }
+
+            if constexpr (std::is_enum_v<T>)
+                validator = [] (const std::string& str) {
+                    auto& names = list_enum_names(T());
+                    return std::find(names.begin(), names.end(), str) != names.end();
+                };
+            else if constexpr (std::is_integral_v<T> && std::is_signed_v<T>)
+                re = std::regex(R"([+-]?\d+)");
             else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>)
-                return std::regex(R"(\+?\d+)");
+                re = std::regex(R"(\+?\d+)");
             else if constexpr (std::is_floating_point_v<T>)
-                return std::regex(R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)");
-            else
-                return std::regex(".*");
+                re = std::regex(R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)");
+
+            if (re)
+                validator = [re] (const std::string& str) { return std::regex_match(str, *re); };
+
+            return validator;
+
         }
 
         template <typename T>

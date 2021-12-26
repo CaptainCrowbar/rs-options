@@ -75,7 +75,7 @@ namespace RS::Options {
                     mark_found(*it);
                 }
 
-                if (! std::regex_match(arg, current->pattern))
+                if (current->validator && ! current->validator(arg))
                     throw std::invalid_argument("Argument does not match expected pattern: {0:q}"_fmt(arg));
 
                 current->setter(arg);
@@ -169,7 +169,7 @@ namespace RS::Options {
         return i != npos && options_[i].found;
     }
 
-    void Options::do_add(setter_type setter, const std::regex& pattern, const std::string& name, char abbrev,
+    void Options::do_add(setter_type setter, validator_type validator, const std::string& name, char abbrev,
             const std::string& description, const std::string& placeholder, const std::string& default_value,
             mode kind, int flags) {
 
@@ -177,7 +177,7 @@ namespace RS::Options {
         option_info info;
 
         info.setter = setter;
-        info.pattern = pattern;
+        info.validator = validator;
         info.name = trim_name(name);
         info.description = trim(description);
         info.placeholder = placeholder;
