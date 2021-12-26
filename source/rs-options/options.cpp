@@ -151,10 +151,6 @@ namespace RS::Options {
 
         }
 
-        auto it = std::find_if(options_.begin(), options_.end(), [] (auto& opt) { return opt.is_required && ! opt.found; });
-        if (it != options_.end())
-            throw user_error("Required option not found: --" + it->name);
-
         size_t index = option_index("help");
         if (options_[index].found) {
             out << format_help();
@@ -166,6 +162,10 @@ namespace RS::Options {
             out << app_ << version_ << "\n";
             return false;
         }
+
+        auto it = std::find_if(options_.begin(), options_.end(), [] (auto& opt) { return opt.is_required && ! opt.found; });
+        if (it != options_.end())
+            throw user_error("Required option not found: --" + it->name);
 
         return true;
 
