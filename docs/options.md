@@ -226,8 +226,10 @@ the automatic detection.
 ### Command line parsing functions
 
 ```c++
-bool Options::parse(int argc, char** argv, std::ostream& out = std::cout);
-bool Options::parse(std::vector<std::string> args, std::ostream& out = std::cout);
+bool Options::parse(int argc, char** argv,
+    std::ostream& out = std::cout);
+bool Options::parse(std::vector<std::string> args,
+    std::ostream& out = std::cout);
 ```
 
 After the options have been configured, call one of these functions to parse
