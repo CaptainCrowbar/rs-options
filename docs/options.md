@@ -170,7 +170,7 @@ following types:
   defined using the `RS_DEFINE_ENUM()` or `RS_DEFINE_ENUM_CLASS()` macros;
   behaviour is undefined if any other enumeration type is used.
 * A container of any of the above types. The type can be any STL compatible
-  container(except `std::basic_string`) that accepts insertion of one of
+  container (except `std::basic_string`) that accepts insertion of one of
   these types. Any of the standard sequential containers (`vector`, `deque`,
   `list`, `forward_list`) will work, as will `set` and other set-like
   containers, but `map` and other map-like containers will not. Using a
