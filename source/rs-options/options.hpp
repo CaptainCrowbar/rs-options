@@ -120,6 +120,7 @@ namespace RS::Options {
 
             using namespace Detail;
             using namespace RS::Format;
+            using namespace RS::Format::Literals;
 
             static_assert(is_valid_argument_type<T>, "Invalid command line argument type");
 
@@ -146,9 +147,9 @@ namespace RS::Options {
                     if constexpr (std::is_same_v<T, std::string>) {
                         re = std::regex(pattern);
                         if (! std::regex_match(var, re))
-                            throw std::invalid_argument("Default value does not match pattern: " + quote("--" + name));
+                            throw std::invalid_argument("Default value does not match pattern: {0:q}"_fmt("--" + name));
                     } else {
-                        throw std::invalid_argument("Pattern is only allowed for string-valued options: " + quote("--" + name));
+                        throw std::invalid_argument("Pattern is only allowed for string-valued options: {0:q}"_fmt("--" + name));
                     }
                 }
 

@@ -71,12 +71,12 @@ namespace RS::Options {
                         return opt.is_anon && (opt.kind == mode::multiple || ! opt.found);
                     });
                     if (it == options_.end())
-                        throw std::invalid_argument("Argument not associated with an option: " + quote(arg));
+                        throw std::invalid_argument("Argument not associated with an option: {0:q}"_fmt(arg));
                     mark_found(*it);
                 }
 
                 if (! std::regex_match(arg, current->pattern))
-                    throw std::invalid_argument("Argument does not match pattern: " + quote("--" + current->name + "=" + arg));
+                    throw std::invalid_argument("Argument does not match expected pattern: {0:q}"_fmt(arg));
 
                 current->setter(arg);
                 if (current->kind != mode::multiple)
@@ -108,7 +108,7 @@ namespace RS::Options {
 
                     size_t j = option_index(arg.substr(2));
                     if (j == npos)
-                        throw std::invalid_argument("Unknown option: " + quote(arg));
+                        throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
                     mark_found(options_[j]);
                     ++i;
 
@@ -131,7 +131,7 @@ namespace RS::Options {
 
                 size_t j = option_index(arg[1]);
                 if (j == npos)
-                    throw std::invalid_argument("Unknown option: " + quote(arg));
+                    throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
                 mark_found(options_[j]);
                 ++i;
 
@@ -141,7 +141,7 @@ namespace RS::Options {
 
         auto it = std::find_if(options_.begin(), options_.end(), [] (auto& opt) { return opt.is_required && ! opt.found; });
         if (it != options_.end())
-            throw std::invalid_argument("Required option not found: " + quote("--" + it->name));
+            throw std::invalid_argument("Required option not found: {0:q}"_fmt("--" + it->name));
 
         size_t index = option_index("help");
         if (options_[index].found) {
@@ -187,34 +187,34 @@ namespace RS::Options {
         info.is_anon = (flags & anon) != 0;
         info.is_required = (flags & required) != 0;
 
-        auto quoted_name = [&info] { return quote("--" + info.name); };
-        auto quoted_abbrev = [&info] { return quote({'-', info.abbrev}); };
+        std::string long_name = "--" + info.name;
+        std::string short_name = {'-', info.abbrev};
 
         if (info.name.empty() || name.find_first_of(ascii_whitespace) != npos
                 || std::find_if(name.begin(), name.end(), ascii_iscntrl) != name.end())
-            throw std::invalid_argument("Invalid long option: " + quote(name));
+            throw std::invalid_argument("Invalid long option: {0:q}"_fmt(name));
         if (option_index(info.name) != npos)
-            throw std::invalid_argument("Duplicate long option: " + quoted_name());
+            throw std::invalid_argument("Duplicate long option: {0:q}"_fmt(long_name));
 
         if (info.abbrev != '\0') {
             if (! ascii_isgraph(info.abbrev) || info.abbrev == '-')
-                throw std::invalid_argument("Invalid short option: " + quoted_abbrev());
+                throw std::invalid_argument("Invalid short option: {0:q}"_fmt(short_name));
             if (option_index(info.abbrev) != npos)
-                throw std::invalid_argument("Duplicate short option: " + quoted_abbrev());
+                throw std::invalid_argument("Duplicate short option: {0:q}"_fmt(short_name));
         }
 
         if (info.kind == mode::boolean && info.is_anon)
-            throw std::invalid_argument("Boolean options can't be anonymous: " + quoted_name());
+            throw std::invalid_argument("Boolean options can't be anonymous: {0:q}"_fmt(long_name));
         if (info.kind == mode::boolean && info.is_required)
-            throw std::invalid_argument("Boolean options can't be required: " + quoted_name());
+            throw std::invalid_argument("Boolean options can't be required: {0:q}"_fmt(long_name));
         if (info.is_anon) {
             if (anon_complete)
-                throw std::invalid_argument("All anonymous arguments are already accounted for: " + quoted_name());
+                throw std::invalid_argument("All anonymous arguments are already accounted for: {0:q}"_fmt(long_name));
             anon_complete = info.kind == mode::multiple;
         }
 
         if (info.description.empty())
-            throw std::invalid_argument("Invalid option description: " + quote(description));
+            throw std::invalid_argument("Invalid option description: {0:q}"_fmt(description));
 
         options_.push_back(info);
 
@@ -223,17 +223,17 @@ namespace RS::Options {
     std::string Options::format_help() const {
 
         auto xterm = colour_ == -1 ? Xterm() : Xterm(bool(colour_));
-        auto head = xterm.rgb(5, 5, 1); // bright yellow
-        auto body = xterm.rgb(5, 5, 3); // pale yellow
-        auto optc = xterm.rgb(1, 5, 1); // green
-        auto desc = xterm.rgb(2, 4, 5); // cyan
+        auto head_colour = xterm.rgb(5, 5, 1); // bright yellow
+        auto body_colour = xterm.rgb(5, 5, 3); // pale yellow
+        auto prefix_colour = xterm.rgb(1, 5, 1); // green
+        auto suffix_colour = xterm.rgb(2, 4, 5); // cyan
 
         std::string text = "\n"
             "{3}{4}{0}{1}{6}\n\n"
             "{5}{2}{6}\n\n"
             "{5}Options:{6}\n"_fmt
-            (app_, version_, description_,
-                xterm.bold(), head, body, xterm.reset());
+        (app_, version_, description_,
+            xterm.bold(), head_colour, body_colour, xterm.reset());
 
         std::vector<std::string> left, right;
         std::string block;
@@ -282,12 +282,13 @@ namespace RS::Options {
 
         for (size_t i = 0; i < left.size(); ++i) {
             left[i].resize(left_width, ' ');
-            text += "    {2}{0}  {3}= {1}{4}\n"_fmt(left[i], right[i], optc, desc, xterm.reset());
+            text += "    {2}{0}  {3}= {1}{4}\n"_fmt
+                (left[i], right[i], prefix_colour, suffix_colour, xterm.reset());
         }
 
         text += '\n';
         if (! extra_.empty())
-            text += "{1}{0}{2}\n\n"_fmt(extra_, body, xterm.reset());
+            text += "{1}{0}{2}\n\n"_fmt(extra_, body_colour, xterm.reset());
 
         return text;
 
