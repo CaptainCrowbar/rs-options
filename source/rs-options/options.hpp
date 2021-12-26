@@ -49,7 +49,6 @@ namespace RS::Options {
     }
 
     // TODO
-    // * Allow equals sign on long options e.g. --long-name=value
     // * Specify a pattern in add()
     // * Mutually exclusive option groups
     // * Enumeration valued options
