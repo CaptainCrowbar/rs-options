@@ -49,7 +49,6 @@ namespace RS::Options {
     }
 
     // TODO
-    // * Specify a pattern in add()
     // * Mutually exclusive option groups
     // * Enumeration valued options
     // * Option to accept SI tags on numbers
@@ -66,8 +65,8 @@ namespace RS::Options {
         Options(const std::string& app, const std::string& version, const std::string& description,
             const std::string& extra = {});
 
-        template <typename T> Options& add(T& var, const std::string& name, char abbrev, int flags,
-            const std::string& description);
+        template <typename T> Options& add(T& var, const std::string& name, char abbrev,
+            const std::string& pattern, int flags, const std::string& description);
         void auto_help() noexcept { auto_help_ = true; }
         bool parse(std::vector<std::string> args, std::ostream& out = std::cout);
         bool parse(int argc, char** argv, std::ostream& out = std::cout);
@@ -114,16 +113,18 @@ namespace RS::Options {
     };
 
         template <typename T>
-        Options& Options::add(T& var, const std::string& name, char abbrev, int flags,
-                const std::string& description) {
+        Options& Options::add(T& var, const std::string& name, char abbrev,
+                const std::string& pattern, int flags, const std::string& description) {
 
             using namespace Detail;
             using namespace RS::Format;
 
             static_assert(is_valid_argument_type<T>, "Invalid command line argument type");
 
+            static const std::regex match_anything(".*");
+
             setter_type setter;
-            std::regex pattern;
+            std::regex re = match_anything;
             std::string placeholder;
             std::string default_value;
             mode kind;
@@ -136,9 +137,21 @@ namespace RS::Options {
             } else if constexpr (is_scalar_argument_type<T>) {
 
                 setter = [&var] (const std::string& str) { var = parse_argument<T>(str); };
-                pattern = type_pattern<T>();
                 placeholder = type_placeholder<T>();
                 kind = mode::single;
+
+                if (! pattern.empty()) {
+                    if constexpr (std::is_same_v<T, std::string>) {
+                        re = std::regex(pattern);
+                        if (! std::regex_match(var, re))
+                            throw std::invalid_argument("Default value does not match pattern: " + quote("--" + name));
+                    } else {
+                        throw std::invalid_argument("Pattern is only allowed for string-valued options: " + quote("--" + name));
+                    }
+                }
+
+                if constexpr (std::is_arithmetic_v<T>)
+                    re = type_pattern<T>();
 
                 if ((flags & required) == 0 && var != T()) {
                     default_value = format_object(var);
@@ -153,13 +166,13 @@ namespace RS::Options {
 
                 var.clear();
                 setter = [&var] (const std::string& str) { var.insert(var.end(), parse_argument<VT>(str)); };
-                pattern = type_pattern<VT>();
+                re = type_pattern<VT>();
                 placeholder = type_placeholder<VT>();
                 kind = mode::multiple;
 
             }
 
-            do_add(setter, pattern, name, abbrev, flags, description, placeholder, default_value, kind);
+            do_add(setter, re, name, abbrev, flags, description, placeholder, default_value, kind);
 
             return *this;
 
@@ -191,7 +204,7 @@ namespace RS::Options {
             else if constexpr (std::is_floating_point_v<T>)
                 return std::regex(R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)");
             else
-                return std::regex(R"(.*)");
+                return std::regex(".*");
         }
 
         template <typename T>

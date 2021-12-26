@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
     UNIT_TEST(rs_options_multiple_booleans)
     UNIT_TEST(rs_options_anonymous_options)
     UNIT_TEST(rs_options_non_sequential_containers)
+    UNIT_TEST(rs_options_match_pattern)
 
     // unit-test.cpp
 

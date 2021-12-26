@@ -1,6 +1,7 @@
 #include "rs-options/options.hpp"
 #include "rs-format/format.hpp"
 #include "rs-unit-test.hpp"
+#include <regex>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -86,11 +87,11 @@ void test_rs_options_simple_parsing() {
     bool b = false;
 
     Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(s, "string", 's', 0, "String option"))
-    TRY(opt1.add(i, "integer", 'i', 0, "Integer option"))
-    TRY(opt1.add(u, "unsigned", 'u', 0, "Unsigned option"))
-    TRY(opt1.add(d, "real", 'r', 0, "Real option"))
-    TRY(opt1.add(b, "boolean", 'b', 0, "Boolean option"))
+    TRY(opt1.add(s, "string", 's', "", 0, "String option"));
+    TRY(opt1.add(i, "integer", 'i', "", 0, "Integer option"));
+    TRY(opt1.add(u, "unsigned", 'u', "", 0, "Unsigned option"));
+    TRY(opt1.add(d, "real", 'r', "", 0, "Real option"));
+    TRY(opt1.add(b, "boolean", 'b', "", 0, "Boolean option"));
 
     {
         Options opt2 = opt1;
@@ -210,9 +211,9 @@ void test_rs_options_required_options() {
     std::string s;
     int i = 0;
 
-    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(s, "string", 's', 0, "String option"))
-    TRY(opt1.add(i, "integer", 'i', Options::required, "Integer option"))
+    Options opt1("Hello", "1.0", "Says hello.");
+    TRY(opt1.add(s, "string", 's', "", 0, "String option"));
+    TRY(opt1.add(i, "integer", 'i', "", Options::required, "Integer option"));
 
     {
         Options opt2 = opt1;
@@ -230,8 +231,6 @@ void test_rs_options_required_options() {
             "    --integer, -i <int>  Integer option (required)\n"
             "    --help, -h           Show help\n"
             "    --version, -v        Show version\n"
-            "\n"
-            "Also says goodbye.\n"
             "\n"
         );
     }
@@ -264,10 +263,10 @@ void test_rs_options_multiple_booleans() {
     bool b = false;
     bool c = false;
 
-    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(a, "alpha", 'a', 0, "Alpha option"))
-    TRY(opt1.add(b, "bravo", 'b', 0, "Bravo option"))
-    TRY(opt1.add(c, "charlie", 'c', 0, "Charlie option"))
+    Options opt1("Hello", "1.0", "Says hello.");
+    TRY(opt1.add(a, "alpha", 'a', "", 0, "Alpha option"));
+    TRY(opt1.add(b, "bravo", 'b', "", 0, "Bravo option"));
+    TRY(opt1.add(c, "charlie", 'c', "", 0, "Charlie option"));
 
     {
         Options opt2 = opt1;
@@ -286,8 +285,6 @@ void test_rs_options_multiple_booleans() {
             "    --charlie, -c  Charlie option\n"
             "    --help, -h     Show help\n"
             "    --version, -v  Show version\n"
-            "\n"
-            "Also says goodbye.\n"
             "\n"
         );
     }
@@ -315,10 +312,10 @@ void test_rs_options_anonymous_options() {
     int s = 456;
     std::vector<int> r;
 
-    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(f, "first", 'f', Options::anon, "First option"))
-    TRY(opt1.add(s, "second", 's', Options::anon, "Second option"))
-    TRY(opt1.add(r, "rest", 'r', Options::anon, "Rest of the options"))
+    Options opt1("Hello", "1.0", "Says hello.");
+    TRY(opt1.add(f, "first", 'f', "", Options::anon, "First option"));
+    TRY(opt1.add(s, "second", 's', "", Options::anon, "Second option"));
+    TRY(opt1.add(r, "rest", 'r', "", Options::anon, "Rest of the options"));
 
     {
         Options opt2 = opt1;
@@ -337,8 +334,6 @@ void test_rs_options_anonymous_options() {
             "    [--rest, -r] <int> ...  Rest of the options\n"
             "    --help, -h              Show help\n"
             "    --version, -v           Show version\n"
-            "\n"
-            "Also says goodbye.\n"
             "\n"
         );
     }
@@ -377,10 +372,10 @@ void test_rs_options_non_sequential_containers() {
     int s = 456;
     std::set<int> r;
 
-    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(f, "first", 'f', Options::anon, "First option"))
-    TRY(opt1.add(s, "second", 's', Options::anon, "Second option"))
-    TRY(opt1.add(r, "rest", 'r', Options::anon, "Rest of the options"))
+    Options opt1("Hello", "1.0", "Says hello.");
+    TRY(opt1.add(f, "first", 'f', "", Options::anon, "First option"));
+    TRY(opt1.add(s, "second", 's', "", Options::anon, "Second option"));
+    TRY(opt1.add(r, "rest", 'r', "", Options::anon, "Rest of the options"));
 
     {
         Options opt2 = opt1;
@@ -400,8 +395,6 @@ void test_rs_options_non_sequential_containers() {
             "    --help, -h              Show help\n"
             "    --version, -v           Show version\n"
             "\n"
-            "Also says goodbye.\n"
-            "\n"
         );
     }
 
@@ -419,6 +412,64 @@ void test_rs_options_non_sequential_containers() {
         TEST_EQUAL(f, 789);
         TEST_EQUAL(s, 789);
         TEST_EQUAL(format_range(r), "[100,789]");
+    }
+
+}
+
+void test_rs_options_match_pattern() {
+
+    std::string h = "Hello";
+    std::string g = "Goodbye";
+    std::string f = "Fubar";
+
+    Options opt1("Hello", "1.0", "Says hello.");
+    TRY(opt1.add(h, "hello", 'h', "He.*", 0, "Hello option"));
+    TRY(opt1.add(g, "goodbye", 'g', "Go.*", 0, "Goodbye option"));
+    TEST_THROW(opt1.add(f, "fubar", 'f', "*", 0, "Fubar option"), std::regex_error);
+    TEST_THROW(opt1.add(f, "fubar", 'f', "fu.*", 0, "Fubar option"), std::invalid_argument);
+
+    {
+        Options opt2 = opt1;
+        TRY(opt2.auto_help());
+        std::ostringstream out;
+        TEST(! opt2.parse({}, out));
+        TEST_EQUAL(out.str(),
+            "\n"
+            "Hello 1.0\n"
+            "\n"
+            "Says hello.\n"
+            "\n"
+            "Options:\n"
+            "    --hello, -h <arg>    Hello option (default \"Hello\")\n"
+            "    --goodbye, -g <arg>  Goodbye option (default \"Goodbye\")\n"
+            "    --help               Show help\n"
+            "    --version, -v        Show version\n"
+            "\n"
+        );
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "--hello", "Hellfire",
+            "--goodbye", "Godzilla",
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("hello"));
+        TEST(opt2.found("goodbye"));
+        TEST_EQUAL(h, "Hellfire");
+        TEST_EQUAL(g, "Godzilla");
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST_THROW(opt2.parse({
+            "--hello", "Hellfire",
+            "--goodbye", "Grinch",
+        }, out),
+            std::invalid_argument);
     }
 
 }

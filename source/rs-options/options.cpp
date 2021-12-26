@@ -34,8 +34,8 @@ namespace RS::Options {
         char version_abbrev = option_index('v') == npos ? 'v' : '\0';
         bool want_help = false;
         bool want_version = false;
-        add(want_help, "help", help_abbrev, 0, "Show help");
-        add(want_version, "version", version_abbrev, 0, "Show version");
+        add(want_help, "help", help_abbrev, "", 0, "Show help");
+        add(want_version, "version", version_abbrev, "", 0, "Show version");
 
         if (auto_help_ && args.empty()) {
             out << format_help();
@@ -46,7 +46,7 @@ namespace RS::Options {
         size_t i = 0;
         bool escaped = false;
 
-        auto found = [&current] (option_info& opt) {
+        auto mark_found = [&current] (option_info& opt) {
             current = &opt;
             opt.found = true;
             if (opt.kind == mode::boolean)
@@ -67,8 +67,11 @@ namespace RS::Options {
                     });
                     if (it == options_.end())
                         throw std::invalid_argument("Argument not associated with an option: " + quote(arg));
-                    found(*it);
+                    mark_found(*it);
                 }
+
+                if (! std::regex_match(arg, current->pattern))
+                    throw std::invalid_argument("Argument does not match pattern: " + quote("--" + current->name + "=" + arg));
 
                 current->setter(arg);
                 if (current->kind != mode::multiple)
@@ -101,7 +104,7 @@ namespace RS::Options {
                     size_t j = option_index(arg.substr(2));
                     if (j == npos)
                         throw std::invalid_argument("Unknown option: " + quote(arg));
-                    found(options_[j]);
+                    mark_found(options_[j]);
                     ++i;
 
                 }
@@ -124,7 +127,7 @@ namespace RS::Options {
                 size_t j = option_index(arg[1]);
                 if (j == npos)
                     throw std::invalid_argument("Unknown option: " + quote(arg));
-                found(options_[j]);
+                mark_found(options_[j]);
                 ++i;
 
             }
