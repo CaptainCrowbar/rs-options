@@ -190,7 +190,7 @@ The `add()` function will throw `setup_error` under any of the following
 conditions:
 
 * The option name has less than two characters (not counting any leading hyphens).
-* The name or abbreviation contains any whitespace characters.
+* The name or abbreviation contains any whitespace or control characters.
 * The abbreviation is not an ASCII character.
 * The name or abbreviation has already been used by another option.
 * The description string is empty or contains only whitespace.
