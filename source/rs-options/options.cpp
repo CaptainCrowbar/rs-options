@@ -1,5 +1,5 @@
 #include "rs-options/options.hpp"
-#include "rs-format/table.hpp"
+#include "rs-format/terminal.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -23,6 +23,7 @@ namespace RS::Options {
     version_(trim(version)),
     description_(trim(description)),
     extra_(trim(extra)),
+    colour_(-1),
     auto_help_(false) {
         if (app.empty())
             throw std::invalid_argument("No application name was supplied");
@@ -38,8 +39,8 @@ namespace RS::Options {
         char version_abbrev = option_index('v') == npos ? 'v' : '\0';
         bool want_help = false;
         bool want_version = false;
-        add(want_help, "help", help_abbrev, "Show help");
-        add(want_version, "version", version_abbrev, "Show version");
+        add(want_help, "help", help_abbrev, "Show usage information");
+        add(want_version, "version", version_abbrev, "Show version information");
 
         if (auto_help_ && args.empty()) {
             out << format_help();
@@ -221,51 +222,72 @@ namespace RS::Options {
 
     std::string Options::format_help() const {
 
-        std::string text = "\n{0}{1}\n\n{2}\n\nOptions:\n"_fmt(app_, version_, description_);
-        Table tab;
+        auto xterm = colour_ == -1 ? Xterm() : Xterm(bool(colour_));
+        auto head = xterm.rgb(5, 5, 1); // bright yellow
+        auto body = xterm.rgb(5, 5, 3); // pale yellow
+        auto optc = xterm.rgb(1, 5, 1); // green
+        auto desc = xterm.rgb(2, 4, 5); // cyan
+
+        std::string text = "\n"
+            "{3}{4}{0}{1}{6}\n\n"
+            "{5}{2}{6}\n\n"
+            "{5}Options:{6}\n"_fmt
+            (app_, version_, description_,
+                xterm.bold(), head, body, xterm.reset());
+
+        std::vector<std::string> left, right;
+        std::string block;
+        size_t left_width = 0;
 
         for (auto& info: options_) {
 
-            std::string usage;
+            block.clear();
 
             if (info.is_anon)
-                usage += '[';
-            usage += "--" + info.name;
+                block += '[';
+            block += "--" + info.name;
             if (info.abbrev != '\0')
-                usage += ", -" + std::string{info.abbrev};
+                block += ", -" + std::string{info.abbrev};
             if (info.is_anon)
-                usage += ']';
+                block += ']';
 
             if (info.kind != mode::boolean) {
-                usage += " " + info.placeholder;
+                block += " " + info.placeholder;
                 if (info.kind == mode::multiple)
-                    usage += " ...";
+                    block += " ...";
             }
 
-            std::string desc = info.description;
+            left.push_back(block);
+            left_width = std::max(left_width, block.size());
+
+            block = info.description;
 
             if (info.is_required || ! info.default_value.empty()) {
-                if (desc.back() == ')') {
-                    desc.pop_back();
-                    desc += "; ";
+                if (block.back() == ')') {
+                    block.pop_back();
+                    block += "; ";
                 } else {
-                    desc += " (";
+                    block += " (";
                 }
                 if (info.is_required)
-                    desc += "required";
+                    block += "required";
                 else
-                    desc += "default " + info.default_value;
-                desc += ")";
+                    block += "default " + info.default_value;
+                block += ")";
             }
 
-            tab.add(usage, desc);
+            right.push_back(block);
 
         }
 
-        text += indent_lines(to_string(tab));
-        if (! extra_.empty())
-            text = "{0}\n{1}\n"_fmt(text, extra_);
+        for (size_t i = 0; i < left.size(); ++i) {
+            left[i].resize(left_width, ' ');
+            text += "    {2}{0}  {3}= {1}{4}\n"_fmt(left[i], right[i], optc, desc, xterm.reset());
+        }
+
         text += '\n';
+        if (! extra_.empty())
+            text += "{1}{0}{2}\n\n"_fmt(extra_, body, xterm.reset());
 
         return text;
 

@@ -1,5 +1,6 @@
 #include "rs-options/options.hpp"
 #include "rs-format/format.hpp"
+#include "rs-format/terminal.hpp"
 #include "rs-unit-test.hpp"
 #include <regex>
 #include <set>
@@ -57,24 +58,48 @@ void test_rs_options_type_traits() {
 
 void test_rs_options_basic_help() {
 
-    Options opt("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt.auto_help());
+    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
+    TRY(opt1.auto_help());
 
-    std::ostringstream out;
-    TEST(! opt.parse({}, out));
-    TEST_EQUAL(out.str(),
-        "\n"
-        "Hello 1.0\n"
-        "\n"
-        "Says hello.\n"
-        "\n"
-        "Options:\n"
-        "    --help, -h     Show help\n"
-        "    --version, -v  Show version\n"
-        "\n"
-        "Also says goodbye.\n"
-        "\n"
-    );
+    {
+        Options opt2 = opt1;
+        TRY(opt2.set_colour(false));
+        std::ostringstream out;
+        TEST(! opt2.parse({}, out));
+        TEST_EQUAL(out.str(),
+            "\n"
+            "Hello 1.0\n"
+            "\n"
+            "Says hello.\n"
+            "\n"
+            "Options:\n"
+            "    --help, -h     = Show usage information\n"
+            "    --version, -v  = Show version information\n"
+            "\n"
+            "Also says goodbye.\n"
+            "\n"
+        );
+    }
+
+    {
+        Options opt2 = opt1;
+        TRY(opt2.set_colour(true));
+        std::ostringstream out;
+        TEST(! opt2.parse({}, out));
+        TEST_MATCH(out.str(),
+            R"(\n)"
+            R"(\x1b\[1m\x1b\[38;5;\d+mHello 1.0\x1b\[0m\n)"
+            R"(\n)"
+            R"(\x1b\[38;5;\d+mSays hello.\x1b\[0m\n)"
+            R"(\n)"
+            R"(\x1b\[38;5;\d+mOptions:\x1b\[0m\n)"
+            R"(    \x1b\[38;5;\d+m--help, -h     \x1b\[38;5;\d+m= Show usage information\x1b\[0m\n)"
+            R"(    \x1b\[38;5;\d+m--version, -v  \x1b\[38;5;\d+m= Show version information\x1b\[0m\n)"
+            R"(\n)"
+            R"(\x1b\[38;5;\d+mAlso says goodbye.\x1b\[0m\n)"
+            R"(\n)"
+        );
+    }
 
 }
 
@@ -87,6 +112,7 @@ void test_rs_options_simple_parsing() {
     bool b = false;
 
     Options opt1("Hello", "", "Says hello.", "Also says goodbye.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(s, "string", 's', "String option"));
     TRY(opt1.add(i, "integer", 'i', "Integer option"));
     TRY(opt1.add(u, "unsigned", 'u', "Unsigned option"));
@@ -105,13 +131,13 @@ void test_rs_options_simple_parsing() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    --string, -s <arg>     String option (default \"Hello\")\n"
-            "    --integer, -i <int>    Integer option (default -123)\n"
-            "    --unsigned, -u <uint>  Unsigned option (default 456)\n"
-            "    --real, -r <real>      Real option (default 789.5)\n"
-            "    --boolean, -b          Boolean option\n"
-            "    --help, -h             Show help\n"
-            "    --version, -v          Show version\n"
+            "    --string, -s <arg>     = String option (default \"Hello\")\n"
+            "    --integer, -i <int>    = Integer option (default -123)\n"
+            "    --unsigned, -u <uint>  = Unsigned option (default 456)\n"
+            "    --real, -r <real>      = Real option (default 789.5)\n"
+            "    --boolean, -b          = Boolean option\n"
+            "    --help, -h             = Show usage information\n"
+            "    --version, -v          = Show version information\n"
             "\n"
             "Also says goodbye.\n"
             "\n"
@@ -212,6 +238,7 @@ void test_rs_options_required_options() {
     int i = 0;
 
     Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(s, "string", 's', "String option"));
     TRY(opt1.add(i, "integer", 'i', "Integer option", Options::required));
 
@@ -227,10 +254,10 @@ void test_rs_options_required_options() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    --string, -s <arg>   String option\n"
-            "    --integer, -i <int>  Integer option (required)\n"
-            "    --help, -h           Show help\n"
-            "    --version, -v        Show version\n"
+            "    --string, -s <arg>   = String option\n"
+            "    --integer, -i <int>  = Integer option (required)\n"
+            "    --help, -h           = Show usage information\n"
+            "    --version, -v        = Show version information\n"
             "\n"
         );
     }
@@ -264,6 +291,7 @@ void test_rs_options_multiple_booleans() {
     bool c = false;
 
     Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(a, "alpha", 'a', "Alpha option"));
     TRY(opt1.add(b, "bravo", 'b', "Bravo option"));
     TRY(opt1.add(c, "charlie", 'c', "Charlie option"));
@@ -280,11 +308,11 @@ void test_rs_options_multiple_booleans() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    --alpha, -a    Alpha option\n"
-            "    --bravo, -b    Bravo option\n"
-            "    --charlie, -c  Charlie option\n"
-            "    --help, -h     Show help\n"
-            "    --version, -v  Show version\n"
+            "    --alpha, -a    = Alpha option\n"
+            "    --bravo, -b    = Bravo option\n"
+            "    --charlie, -c  = Charlie option\n"
+            "    --help, -h     = Show usage information\n"
+            "    --version, -v  = Show version information\n"
             "\n"
         );
     }
@@ -313,6 +341,7 @@ void test_rs_options_anonymous_options() {
     std::vector<int> r;
 
     Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(f, "first", 'f', "First option", Options::anon));
     TRY(opt1.add(s, "second", 's', "Second option", Options::anon));
     TRY(opt1.add(r, "rest", 'r', "Rest of the options", Options::anon));
@@ -329,11 +358,11 @@ void test_rs_options_anonymous_options() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    [--first, -f] <int>     First option (default 123)\n"
-            "    [--second, -s] <int>    Second option (default 456)\n"
-            "    [--rest, -r] <int> ...  Rest of the options\n"
-            "    --help, -h              Show help\n"
-            "    --version, -v           Show version\n"
+            "    [--first, -f] <int>     = First option (default 123)\n"
+            "    [--second, -s] <int>    = Second option (default 456)\n"
+            "    [--rest, -r] <int> ...  = Rest of the options\n"
+            "    --help, -h              = Show usage information\n"
+            "    --version, -v           = Show version information\n"
             "\n"
         );
     }
@@ -373,6 +402,7 @@ void test_rs_options_non_sequential_containers() {
     std::set<int> r;
 
     Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(f, "first", 'f', "First option", Options::anon));
     TRY(opt1.add(s, "second", 's', "Second option", Options::anon));
     TRY(opt1.add(r, "rest", 'r', "Rest of the options", Options::anon));
@@ -389,11 +419,11 @@ void test_rs_options_non_sequential_containers() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    [--first, -f] <int>     First option (default 123)\n"
-            "    [--second, -s] <int>    Second option (default 456)\n"
-            "    [--rest, -r] <int> ...  Rest of the options\n"
-            "    --help, -h              Show help\n"
-            "    --version, -v           Show version\n"
+            "    [--first, -f] <int>     = First option (default 123)\n"
+            "    [--second, -s] <int>    = Second option (default 456)\n"
+            "    [--rest, -r] <int> ...  = Rest of the options\n"
+            "    --help, -h              = Show usage information\n"
+            "    --version, -v           = Show version information\n"
             "\n"
         );
     }
@@ -423,6 +453,7 @@ void test_rs_options_match_pattern() {
     std::string f = "Fubar";
 
     Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.set_colour(false));
     TRY(opt1.add(h, "hello", 'h', "Hello option", 0, "He.*"));
     TRY(opt1.add(g, "goodbye", 'g', "Goodbye option", 0, "Go.*"));
     TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "*"), std::regex_error);
@@ -440,10 +471,10 @@ void test_rs_options_match_pattern() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    --hello, -h <arg>    Hello option (default \"Hello\")\n"
-            "    --goodbye, -g <arg>  Goodbye option (default \"Goodbye\")\n"
-            "    --help               Show help\n"
-            "    --version, -v        Show version\n"
+            "    --hello, -h <arg>    = Hello option (default \"Hello\")\n"
+            "    --goodbye, -g <arg>  = Goodbye option (default \"Goodbye\")\n"
+            "    --help               = Show usage information\n"
+            "    --version, -v        = Show version information\n"
             "\n"
         );
     }

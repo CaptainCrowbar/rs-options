@@ -49,7 +49,6 @@ namespace RS::Options {
     }
 
     // TODO
-    // * Colour output
     // * Mutually exclusive option groups
     // * Enumeration valued options
 
@@ -62,12 +61,14 @@ namespace RS::Options {
             required  = 2,  // Required option
         };
 
+        Options() = default;
         Options(const std::string& app, const std::string& version,
             const std::string& description, const std::string& extra = {});
 
         template <typename T> Options& add(T& var, const std::string& name, char abbrev,
             const std::string& description, int flags = 0, const std::string& pattern = {});
         void auto_help() noexcept { auto_help_ = true; }
+        void set_colour(bool b) noexcept { colour_ = int(b); }
         bool parse(std::vector<std::string> args, std::ostream& out = std::cout);
         bool parse(int argc, char** argv, std::ostream& out = std::cout);
         bool found(const std::string& name) const;
@@ -97,7 +98,8 @@ namespace RS::Options {
         std::string version_;
         std::string description_;
         std::string extra_;
-        bool auto_help_;
+        int colour_ = 0;
+        bool auto_help_ = false;
 
         void do_add(setter_type setter, const std::regex& pattern, const std::string& name, char abbrev,
             const std::string& description, const std::string& placeholder, const std::string& default_value,
