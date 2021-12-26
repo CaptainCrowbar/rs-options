@@ -7,7 +7,6 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
-#include <optional>
 #include <ostream>
 #include <regex>
 #include <stdexcept>
@@ -51,6 +50,14 @@ namespace RS::Options {
             || is_container_argument_type<T>
         );
 
+        template <typename T>
+        T parse_enum_unchecked(const std::string& arg) {
+            // The string has already been validated
+            T t;
+            parse_enum(arg, t);
+            return t;
+        }
+
     }
 
     class Options {
@@ -60,6 +67,18 @@ namespace RS::Options {
         enum flag_type: int {
             anon      = 1,  // Arguments not claimed by other options are assigned to this
             required  = 2,  // Required option
+        };
+
+        class setup_error:
+        public std::logic_error {
+        public:
+            explicit setup_error(const std::string& message);
+        };
+
+        class user_error:
+        public std::runtime_error {
+        public:
+            explicit user_error(const std::string& message);
         };
 
         Options() = default;
@@ -113,7 +132,7 @@ namespace RS::Options {
         size_t option_index(char abbrev) const;
 
         template <typename T> static T parse_argument(const std::string& arg);
-        template <typename T> static validator_type type_validator(const std::string& name, const std::string& pattern);
+        template <typename T> static validator_type type_validator(const std::string& name, std::string pattern);
         template <typename T> static std::string type_placeholder();
 
     };
@@ -148,7 +167,7 @@ namespace RS::Options {
 
                 if constexpr (std::is_same_v<T, std::string>)
                     if (validator && ! validator(var))
-                        throw std::invalid_argument("Default value does not match pattern: --" + name);
+                        throw setup_error("Default value does not match pattern: --" + name);
 
                 if ((flags & required) == 0 && (std::is_enum_v<T> || var != T())) {
                     default_value = format_object(var);
@@ -181,37 +200,30 @@ namespace RS::Options {
             using namespace RS::Format;
             using namespace RS::Format::Literals;
             static_assert(is_scalar_argument_type<T>);
-            if constexpr (std::is_enum_v<T>) {
-                T t;
-                if (! parse_enum(arg, t))
-                    throw std::invalid_argument("Invalid enumeration value: {0:q}"_fmt(arg));
-                return t;
-            } else if constexpr (std::is_same_v<T, std::string>) {
+            if constexpr (std::is_enum_v<T>)
+                return parse_enum_unchecked<T>(arg);
+            else if constexpr (std::is_same_v<T, std::string>)
                 return arg;
-            } else if constexpr (std::is_integral_v<T>) {
+            else if constexpr (std::is_integral_v<T>)
                 return to_integer<T>(arg);
-            } else if constexpr (std::is_floating_point_v<T>) {
+            else if constexpr (std::is_floating_point_v<T>)
                 return to_floating<T>(arg);
-            } else if constexpr (std::is_constructible_v<T, int>) {
+            else if constexpr (std::is_constructible_v<T, int>)
                 return static_cast<T>(to_int64(arg));
-            } else {
+            else
                 return static_cast<T>(arg);
-            }
         }
 
         template <typename T>
-        Options::validator_type Options::type_validator(const std::string& name, const std::string& pattern) {
+        Options::validator_type Options::type_validator(const std::string& name, std::string pattern) {
 
             using namespace RS::Format::Literals;
 
             validator_type validator;
-            std::optional<std::regex> re;
 
-            if (! pattern.empty()) {
-                if constexpr (! std::is_same_v<T, std::string>)
-                    throw std::invalid_argument("Pattern is only allowed for string-valued options: {0:q}"_fmt("--" + name));
-                re = std::regex(pattern);
-            }
+            if constexpr (! std::is_same_v<T, std::string>)
+                if (! pattern.empty())
+                    throw setup_error("Pattern is only allowed for string-valued options: {0:q}"_fmt("--" + name));
 
             if constexpr (std::is_enum_v<T>)
                 validator = [] (const std::string& str) {
@@ -219,14 +231,22 @@ namespace RS::Options {
                     return std::find(names.begin(), names.end(), str) != names.end();
                 };
             else if constexpr (std::is_integral_v<T> && std::is_signed_v<T>)
-                re = std::regex(R"([+-]?\d+)");
+                pattern = R"([+-]?\d+)";
             else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T>)
-                re = std::regex(R"(\+?\d+)");
+                pattern = R"(\+?\d+)";
             else if constexpr (std::is_floating_point_v<T>)
-                re = std::regex(R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)");
+                pattern = R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)";
 
-            if (re)
-                validator = [re] (const std::string& str) { return std::regex_match(str, *re); };
+            if (! pattern.empty()) {
+                std::regex re;
+                try {
+                    re = std::regex(pattern);
+                }
+                catch (const std::regex_error&) {
+                    throw setup_error("Invalid regular expression: {0:q}"_fmt(pattern));
+                }
+                validator = [re] (const std::string& str) { return std::regex_match(str, re); };
+            }
 
             return validator;
 

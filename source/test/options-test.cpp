@@ -3,7 +3,6 @@
 #include "rs-format/format.hpp"
 #include "rs-format/terminal.hpp"
 #include "rs-unit-test.hpp"
-#include <regex>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -271,7 +270,7 @@ void test_rs_options_required_options() {
     {
         Options opt2 = opt1;
         std::ostringstream out;
-        TEST_THROW(opt2.parse({}, out), std::invalid_argument);
+        TEST_THROW(opt2.parse({}, out), Options::user_error);
         TEST_EQUAL(out.str(), "");
     }
 
@@ -462,8 +461,8 @@ void test_rs_options_match_pattern() {
     TRY(opt1.set_colour(false));
     TRY(opt1.add(h, "hello", 'h', "Hello option", 0, "", "He.*"));
     TRY(opt1.add(g, "goodbye", 'g', "Goodbye option", 0, "", "Go.*"));
-    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "*"), std::regex_error);
-    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "fu.*"), std::invalid_argument);
+    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "*"), Options::setup_error);
+    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "fu.*"), Options::setup_error);
 
     {
         Options opt2 = opt1;
@@ -506,7 +505,7 @@ void test_rs_options_match_pattern() {
             "--hello", "Hellfire",
             "--goodbye", "Grinch",
         }, out),
-            std::invalid_argument, "Grinch");
+            Options::user_error, "Grinch");
     }
 
 }
@@ -573,7 +572,7 @@ void test_rs_options_enumeration_types() {
             "--my-enum", "delta",
             "--enum-vector", "alpha", "bravo", "charlie",
         }, out),
-            std::invalid_argument, "delta");
+            Options::user_error, "delta");
     }
 
     {
@@ -583,7 +582,7 @@ void test_rs_options_enumeration_types() {
             "--my-enum", "bravo",
             "--enum-vector", "alpha", "bravo", "charlie", "delta",
         }, out),
-            std::invalid_argument, "delta");
+            Options::user_error, "delta");
     }
 
 }
@@ -675,7 +674,7 @@ void test_rs_options_mutual_exclusion() {
             "--charlie", "333",
             "--delta", "444",
         }, out),
-            std::invalid_argument, "--bravo, --charlie, --delta");
+            Options::user_error, "--bravo, --charlie, --delta");
     }
 
 }

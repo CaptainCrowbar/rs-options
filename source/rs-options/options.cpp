@@ -16,6 +16,12 @@ namespace RS::Options {
 
     }
 
+    Options::setup_error::setup_error(const std::string& message):
+    std::logic_error("Internal error: " + message) {}
+
+    Options::user_error::user_error(const std::string& message):
+    std::runtime_error(message) {}
+
     Options::Options(const std::string& app, const std::string& version,
         const std::string& description, const std::string& extra):
     options_(),
@@ -26,9 +32,9 @@ namespace RS::Options {
     colour_(-1),
     auto_help_(false) {
         if (app.empty())
-            throw std::invalid_argument("No application name was supplied");
+            throw setup_error("No application name was supplied");
         if (description.empty())
-            throw std::invalid_argument("No application description was supplied");
+            throw setup_error("No application description was supplied");
         if (! version_.empty())
             version_.insert(0, 1, ' ');
     }
@@ -56,7 +62,7 @@ namespace RS::Options {
             current = &opt;
             if (! opt.group.empty()) {
                 if (groups_found.count(opt.group) == 1)
-                    throw std::invalid_argument("Options {0} are mutually exclusive"_fmt(group_list(opt.group)));
+                    throw user_error("Options {0} are mutually exclusive"_fmt(group_list(opt.group)));
                 groups_found.insert(opt.group);
             }
             opt.found = true;
@@ -77,12 +83,12 @@ namespace RS::Options {
                         return opt.is_anon && (opt.kind == mode::multiple || ! opt.found);
                     });
                     if (it == options_.end())
-                        throw std::invalid_argument("Argument not associated with an option: {0:q}"_fmt(arg));
+                        throw user_error("Argument not associated with an option: {0:q}"_fmt(arg));
                     on_match(*it);
                 }
 
                 if (current->validator && ! current->validator(arg))
-                    throw std::invalid_argument("Argument does not match expected pattern: {0:q}"_fmt(arg));
+                    throw user_error("Argument does not match expected pattern: {0:q}"_fmt(arg));
 
                 current->setter(arg);
                 if (current->kind != mode::multiple)
@@ -114,7 +120,7 @@ namespace RS::Options {
 
                     size_t j = option_index(arg.substr(2));
                     if (j == npos)
-                        throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
+                        throw user_error("Unknown option: {0:q}"_fmt(arg));
                     on_match(options_[j]);
                     ++i;
 
@@ -137,7 +143,7 @@ namespace RS::Options {
 
                 size_t j = option_index(arg[1]);
                 if (j == npos)
-                    throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
+                    throw user_error("Unknown option: {0:q}"_fmt(arg));
                 on_match(options_[j]);
                 ++i;
 
@@ -147,7 +153,7 @@ namespace RS::Options {
 
         auto it = std::find_if(options_.begin(), options_.end(), [] (auto& opt) { return opt.is_required && ! opt.found; });
         if (it != options_.end())
-            throw std::invalid_argument("Required option not found: --" + it->name);
+            throw user_error("Required option not found: --" + it->name);
 
         size_t index = option_index("help");
         if (options_[index].found) {
@@ -199,33 +205,33 @@ namespace RS::Options {
 
         if (info.name.empty() || name.find_first_of(ascii_whitespace) != npos
                 || std::find_if(name.begin(), name.end(), ascii_iscntrl) != name.end())
-            throw std::invalid_argument("Invalid long option: " + name);
+            throw setup_error("Invalid long option: " + name);
         if (option_index(info.name) != npos)
-            throw std::invalid_argument("Duplicate long option: --" + info.name);
+            throw setup_error("Duplicate long option: --" + info.name);
 
         if (info.abbrev != '\0') {
             if (! ascii_isgraph(info.abbrev) || info.abbrev == '-')
-                throw std::invalid_argument("Invalid short option: -"s + info.abbrev);
+                throw setup_error("Invalid short option: -"s + info.abbrev);
             if (option_index(info.abbrev) != npos)
-                throw std::invalid_argument("Duplicate short option: -"s + info.abbrev);
+                throw setup_error("Duplicate short option: -"s + info.abbrev);
         }
 
         if (info.kind == mode::boolean && info.is_anon)
-            throw std::invalid_argument("Boolean options can't be anonymous: --" + info.name);
+            throw setup_error("Boolean options can't be anonymous: --" + info.name);
         if (info.kind == mode::boolean && info.is_required)
-            throw std::invalid_argument("Boolean options can't be required: --" + info.name);
+            throw setup_error("Boolean options can't be required: --" + info.name);
 
         if (info.is_anon) {
             if (anon_complete)
-                throw std::invalid_argument("All anonymous arguments are already accounted for: --" + info.name);
+                throw setup_error("All anonymous arguments are already accounted for: --" + info.name);
             anon_complete = info.kind == mode::multiple;
         }
 
         if (info.is_required && ! group.empty())
-            throw std::invalid_argument("Required options can't be in a mutual exclusion group: --" + info.name);
+            throw setup_error("Required options can't be in a mutual exclusion group: --" + info.name);
 
         if (info.description.empty())
-            throw std::invalid_argument("Invalid option description: {0:q}"_fmt(description));
+            throw setup_error("Invalid option description: {0:q}"_fmt(description));
 
         options_.push_back(info);
 
