@@ -17,6 +17,7 @@ int main(int argc, char** argv) {
     UNIT_TEST(rs_options_non_sequential_containers)
     UNIT_TEST(rs_options_match_pattern)
     UNIT_TEST(rs_options_enumeration_types)
+    UNIT_TEST(rs_options_mutual_exclusion)
 
     // unit-test.cpp
 

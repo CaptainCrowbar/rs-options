@@ -3,12 +3,14 @@
 #include "rs-format/enum.hpp"
 #include "rs-format/format.hpp"
 #include "rs-format/string.hpp"
+#include <algorithm>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <optional>
 #include <ostream>
 #include <regex>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -51,9 +53,6 @@ namespace RS::Options {
 
     }
 
-    // TODO
-    // * Mutually exclusive option groups
-
     class Options {
 
     public:
@@ -67,8 +66,8 @@ namespace RS::Options {
         Options(const std::string& app, const std::string& version,
             const std::string& description, const std::string& extra = {});
 
-        template <typename T> Options& add(T& var, const std::string& name, char abbrev,
-            const std::string& description, int flags = 0, const std::string& pattern = {});
+        template <typename T> Options& add(T& var, const std::string& name, char abbrev, const std::string& description,
+            int flags = 0, const std::string& group = {}, const std::string& pattern = {});
         void auto_help() noexcept { auto_help_ = true; }
         void set_colour(bool b) noexcept { colour_ = int(b); }
         bool parse(std::vector<std::string> args, std::ostream& out = std::cout);
@@ -89,6 +88,7 @@ namespace RS::Options {
             std::string description;
             std::string placeholder;
             std::string default_value;
+            std::string group;
             char abbrev = '\0';
             mode kind = mode::single;
             bool is_anon = false;
@@ -106,8 +106,9 @@ namespace RS::Options {
 
         void do_add(setter_type setter, validator_type validator, const std::string& name, char abbrev,
             const std::string& description, const std::string& placeholder, const std::string& default_value,
-            mode kind, int flags);
+            mode kind, int flags, const std::string& group);
         std::string format_help() const;
+        std::string group_list(const std::string& group) const;
         size_t option_index(const std::string& name) const;
         size_t option_index(char abbrev) const;
 
@@ -118,8 +119,8 @@ namespace RS::Options {
     };
 
         template <typename T>
-        Options& Options::add(T& var, const std::string& name, char abbrev,
-                const std::string& description, int flags, const std::string& pattern) {
+        Options& Options::add(T& var, const std::string& name, char abbrev, const std::string& description,
+                int flags, const std::string& group, const std::string& pattern) {
 
             using namespace Detail;
             using namespace RS::Format;
@@ -147,7 +148,7 @@ namespace RS::Options {
 
                 if constexpr (std::is_same_v<T, std::string>)
                     if (validator && ! validator(var))
-                        throw std::invalid_argument("Default value does not match pattern: {0:q}"_fmt("--" + name));
+                        throw std::invalid_argument("Default value does not match pattern: --" + name);
 
                 if ((flags & required) == 0 && (std::is_enum_v<T> || var != T())) {
                     default_value = format_object(var);
@@ -168,7 +169,7 @@ namespace RS::Options {
 
             }
 
-            do_add(setter, validator, name, abbrev, description, placeholder, default_value, kind, flags);
+            do_add(setter, validator, name, abbrev, description, placeholder, default_value, kind, flags, group);
 
             return *this;
 

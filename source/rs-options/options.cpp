@@ -1,10 +1,10 @@
 #include "rs-options/options.hpp"
 #include "rs-format/terminal.hpp"
-#include <algorithm>
-#include <stdexcept>
+#include <set>
 
 using namespace RS::Format;
 using namespace RS::Format::Literals;
+using namespace std::literals;
 
 namespace RS::Options {
 
@@ -47,12 +47,18 @@ namespace RS::Options {
             return false;
         }
 
+        std::set<std::string> groups_found;
         option_info* current = nullptr;
         size_t i = 0;
         bool escaped = false;
 
-        auto mark_found = [&current] (option_info& opt) {
+        auto on_match = [this,&current,&groups_found] (option_info& opt) {
             current = &opt;
+            if (! opt.group.empty()) {
+                if (groups_found.count(opt.group) == 1)
+                    throw std::invalid_argument("Options {0} are mutually exclusive"_fmt(group_list(opt.group)));
+                groups_found.insert(opt.group);
+            }
             opt.found = true;
             if (opt.kind == mode::boolean)
                 opt.setter({});
@@ -72,7 +78,7 @@ namespace RS::Options {
                     });
                     if (it == options_.end())
                         throw std::invalid_argument("Argument not associated with an option: {0:q}"_fmt(arg));
-                    mark_found(*it);
+                    on_match(*it);
                 }
 
                 if (current->validator && ! current->validator(arg))
@@ -109,7 +115,7 @@ namespace RS::Options {
                     size_t j = option_index(arg.substr(2));
                     if (j == npos)
                         throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
-                    mark_found(options_[j]);
+                    on_match(options_[j]);
                     ++i;
 
                 }
@@ -132,7 +138,7 @@ namespace RS::Options {
                 size_t j = option_index(arg[1]);
                 if (j == npos)
                     throw std::invalid_argument("Unknown option: {0:q}"_fmt(arg));
-                mark_found(options_[j]);
+                on_match(options_[j]);
                 ++i;
 
             }
@@ -141,7 +147,7 @@ namespace RS::Options {
 
         auto it = std::find_if(options_.begin(), options_.end(), [] (auto& opt) { return opt.is_required && ! opt.found; });
         if (it != options_.end())
-            throw std::invalid_argument("Required option not found: {0:q}"_fmt("--" + it->name));
+            throw std::invalid_argument("Required option not found: --" + it->name);
 
         size_t index = option_index("help");
         if (options_[index].found) {
@@ -171,7 +177,7 @@ namespace RS::Options {
 
     void Options::do_add(setter_type setter, validator_type validator, const std::string& name, char abbrev,
             const std::string& description, const std::string& placeholder, const std::string& default_value,
-            mode kind, int flags) {
+            mode kind, int flags, const std::string& group) {
 
         bool anon_complete = false;
         option_info info;
@@ -182,6 +188,7 @@ namespace RS::Options {
         info.description = trim(description);
         info.placeholder = placeholder;
         info.default_value = default_value;
+        info.group = group;
         info.abbrev = abbrev;
         info.kind = kind;
         info.is_anon = (flags & anon) != 0;
@@ -192,26 +199,30 @@ namespace RS::Options {
 
         if (info.name.empty() || name.find_first_of(ascii_whitespace) != npos
                 || std::find_if(name.begin(), name.end(), ascii_iscntrl) != name.end())
-            throw std::invalid_argument("Invalid long option: {0:q}"_fmt(name));
+            throw std::invalid_argument("Invalid long option: " + name);
         if (option_index(info.name) != npos)
-            throw std::invalid_argument("Duplicate long option: {0:q}"_fmt(long_name));
+            throw std::invalid_argument("Duplicate long option: --" + info.name);
 
         if (info.abbrev != '\0') {
             if (! ascii_isgraph(info.abbrev) || info.abbrev == '-')
-                throw std::invalid_argument("Invalid short option: {0:q}"_fmt(short_name));
+                throw std::invalid_argument("Invalid short option: -"s + info.abbrev);
             if (option_index(info.abbrev) != npos)
-                throw std::invalid_argument("Duplicate short option: {0:q}"_fmt(short_name));
+                throw std::invalid_argument("Duplicate short option: -"s + info.abbrev);
         }
 
         if (info.kind == mode::boolean && info.is_anon)
-            throw std::invalid_argument("Boolean options can't be anonymous: {0:q}"_fmt(long_name));
+            throw std::invalid_argument("Boolean options can't be anonymous: --" + info.name);
         if (info.kind == mode::boolean && info.is_required)
-            throw std::invalid_argument("Boolean options can't be required: {0:q}"_fmt(long_name));
+            throw std::invalid_argument("Boolean options can't be required: --" + info.name);
+
         if (info.is_anon) {
             if (anon_complete)
-                throw std::invalid_argument("All anonymous arguments are already accounted for: {0:q}"_fmt(long_name));
+                throw std::invalid_argument("All anonymous arguments are already accounted for: --" + info.name);
             anon_complete = info.kind == mode::multiple;
         }
+
+        if (info.is_required && ! group.empty())
+            throw std::invalid_argument("Required options can't be in a mutual exclusion group: --" + info.name);
 
         if (info.description.empty())
             throw std::invalid_argument("Invalid option description: {0:q}"_fmt(description));
@@ -223,10 +234,10 @@ namespace RS::Options {
     std::string Options::format_help() const {
 
         auto xterm = colour_ == -1 ? Xterm() : Xterm(bool(colour_));
-        auto head_colour = xterm.rgb(5, 5, 1); // bright yellow
-        auto body_colour = xterm.rgb(5, 5, 3); // pale yellow
-        auto prefix_colour = xterm.rgb(1, 5, 1); // green
-        auto suffix_colour = xterm.rgb(2, 4, 5); // cyan
+        auto head_colour = xterm.rgb(5, 5, 1);
+        auto body_colour = xterm.rgb(5, 5, 3);
+        auto prefix_colour = xterm.rgb(1, 5, 1);
+        auto suffix_colour = xterm.rgb(2, 4, 5);
 
         std::string text = "\n"
             "{3}{4}{0}{1}{6}\n\n"
@@ -292,6 +303,14 @@ namespace RS::Options {
 
         return text;
 
+    }
+
+    std::string Options::group_list(const std::string& group) const {
+        std::vector<std::string> names;
+        for (auto& info: options_)
+            if (info.group == group)
+                names.push_back("--" + info.name);
+        return join(names, ", ");
     }
 
     size_t Options::option_index(const std::string& name) const {
