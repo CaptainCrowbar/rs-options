@@ -121,6 +121,7 @@ namespace RS::Options {
         std::string description_;
         std::string extra_;
         int colour_ = 0;
+        bool allow_help_ = false;
         bool auto_help_ = false;
 
         void do_add(setter_type setter, validator_type validator, const std::string& name, char abbrev,
@@ -180,7 +181,9 @@ namespace RS::Options {
 
                 using VT = typename T::value_type;
 
-                var.clear();
+                if (! var.empty())
+                    throw setup_error("Multi-valued options may not have default values: --" + name);
+
                 setter = [&var] (const std::string& str) { var.insert(var.end(), parse_argument<VT>(str)); };
                 validator = type_validator<VT>(name, pattern);
                 placeholder = type_placeholder<VT>();

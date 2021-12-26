@@ -30,6 +30,7 @@ namespace RS::Options {
     description_(trim(description)),
     extra_(trim(extra)),
     colour_(-1),
+    allow_help_(false),
     auto_help_(false) {
         if (app.empty())
             throw setup_error("No application name was supplied");
@@ -41,6 +42,7 @@ namespace RS::Options {
 
     bool Options::parse(std::vector<std::string> args, std::ostream& out) {
 
+        allow_help_ = true;
         char help_abbrev = option_index('h') == npos ? 'h' : '\0';
         char version_abbrev = option_index('v') == npos ? 'v' : '\0';
         bool want_help = false;
@@ -60,6 +62,8 @@ namespace RS::Options {
 
         auto on_match = [this,&current,&groups_found] (option_info& opt) {
             current = &opt;
+            if (opt.found && opt.kind != mode::multiple)
+                throw user_error("Repeated option: --" + opt.name);
             if (! opt.group.empty()) {
                 if (groups_found.count(opt.group) == 1)
                     throw user_error("Options {0} are mutually exclusive"_fmt(group_list(opt.group)));
@@ -90,7 +94,12 @@ namespace RS::Options {
                 if (current->validator && ! current->validator(arg))
                     throw user_error("Argument does not match expected pattern: {0:q}"_fmt(arg));
 
-                current->setter(arg);
+                try {
+                    current->setter(arg);
+                }
+                catch (const std::invalid_argument& ex) {
+                    throw user_error(ex.what());
+                }
                 if (current->kind != mode::multiple)
                     current = nullptr;
                 ++i;
@@ -206,6 +215,8 @@ namespace RS::Options {
         if (info.name.empty() || name.find_first_of(ascii_whitespace) != npos
                 || std::find_if(name.begin(), name.end(), ascii_iscntrl) != name.end())
             throw setup_error("Invalid long option: " + name);
+        if (! allow_help_ && (name == "help" || name == "version"))
+            throw setup_error("Invalid long option: " + name);
         if (option_index(info.name) != npos)
             throw setup_error("Duplicate long option: --" + info.name);
 
@@ -231,7 +242,7 @@ namespace RS::Options {
             throw setup_error("Required options can't be in a mutual exclusion group: --" + info.name);
 
         if (info.description.empty())
-            throw setup_error("Invalid option description: {0:q}"_fmt(description));
+            throw setup_error("Option description is empty: --" + info.name);
 
         options_.push_back(info);
 

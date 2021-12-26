@@ -11,12 +11,12 @@ _[GitHub repository](https://github.com/CaptainCrowbar/rs-options)_
 namespace RS::Options;
 ```
 
-TODO
+This is my command line option parsing library.
 
-[My unit test library](https://github.com/CaptainCrowbar/rs-unit-test) is used
-for this library's unit tests. This a header-only library, and is not
-required if you only want to use this library without building its unit
-tests.
+This uses my [formatting](https://github.com/CaptainCrowbar/rs-format) and
+[unit test](https://github.com/CaptainCrowbar/rs-unit-test) libraries. Both of
+these are header-only libraries; the unit test library is not required if you
+only want to use this library without building its unit tests.
 
 ## Index
 
