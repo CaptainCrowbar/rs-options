@@ -86,12 +86,12 @@ void test_rs_options_simple_parsing() {
     double d = 789.5;
     bool b = false;
 
-    Options opt1("Hello", "1.0", "Says hello.", "Also says goodbye.");
-    TRY(opt1.add(s, "string", 's', "", 0, "String option"));
-    TRY(opt1.add(i, "integer", 'i', "", 0, "Integer option"));
-    TRY(opt1.add(u, "unsigned", 'u', "", 0, "Unsigned option"));
-    TRY(opt1.add(d, "real", 'r', "", 0, "Real option"));
-    TRY(opt1.add(b, "boolean", 'b', "", 0, "Boolean option"));
+    Options opt1("Hello", "", "Says hello.", "Also says goodbye.");
+    TRY(opt1.add(s, "string", 's', "String option"));
+    TRY(opt1.add(i, "integer", 'i', "Integer option"));
+    TRY(opt1.add(u, "unsigned", 'u', "Unsigned option"));
+    TRY(opt1.add(d, "real", 'r', "Real option"));
+    TRY(opt1.add(b, "boolean", 'b', "Boolean option"));
 
     {
         Options opt2 = opt1;
@@ -100,7 +100,7 @@ void test_rs_options_simple_parsing() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"
@@ -211,9 +211,9 @@ void test_rs_options_required_options() {
     std::string s;
     int i = 0;
 
-    Options opt1("Hello", "1.0", "Says hello.");
-    TRY(opt1.add(s, "string", 's', "", 0, "String option"));
-    TRY(opt1.add(i, "integer", 'i', "", Options::required, "Integer option"));
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.add(s, "string", 's', "String option"));
+    TRY(opt1.add(i, "integer", 'i', "Integer option", Options::required));
 
     {
         Options opt2 = opt1;
@@ -222,7 +222,7 @@ void test_rs_options_required_options() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"
@@ -263,10 +263,10 @@ void test_rs_options_multiple_booleans() {
     bool b = false;
     bool c = false;
 
-    Options opt1("Hello", "1.0", "Says hello.");
-    TRY(opt1.add(a, "alpha", 'a', "", 0, "Alpha option"));
-    TRY(opt1.add(b, "bravo", 'b', "", 0, "Bravo option"));
-    TRY(opt1.add(c, "charlie", 'c', "", 0, "Charlie option"));
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.add(a, "alpha", 'a', "Alpha option"));
+    TRY(opt1.add(b, "bravo", 'b', "Bravo option"));
+    TRY(opt1.add(c, "charlie", 'c', "Charlie option"));
 
     {
         Options opt2 = opt1;
@@ -275,7 +275,7 @@ void test_rs_options_multiple_booleans() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"
@@ -312,10 +312,10 @@ void test_rs_options_anonymous_options() {
     int s = 456;
     std::vector<int> r;
 
-    Options opt1("Hello", "1.0", "Says hello.");
-    TRY(opt1.add(f, "first", 'f', "", Options::anon, "First option"));
-    TRY(opt1.add(s, "second", 's', "", Options::anon, "Second option"));
-    TRY(opt1.add(r, "rest", 'r', "", Options::anon, "Rest of the options"));
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.add(f, "first", 'f', "First option", Options::anon));
+    TRY(opt1.add(s, "second", 's', "Second option", Options::anon));
+    TRY(opt1.add(r, "rest", 'r', "Rest of the options", Options::anon));
 
     {
         Options opt2 = opt1;
@@ -324,7 +324,7 @@ void test_rs_options_anonymous_options() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"
@@ -372,10 +372,10 @@ void test_rs_options_non_sequential_containers() {
     int s = 456;
     std::set<int> r;
 
-    Options opt1("Hello", "1.0", "Says hello.");
-    TRY(opt1.add(f, "first", 'f', "", Options::anon, "First option"));
-    TRY(opt1.add(s, "second", 's', "", Options::anon, "Second option"));
-    TRY(opt1.add(r, "rest", 'r', "", Options::anon, "Rest of the options"));
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.add(f, "first", 'f', "First option", Options::anon));
+    TRY(opt1.add(s, "second", 's', "Second option", Options::anon));
+    TRY(opt1.add(r, "rest", 'r', "Rest of the options", Options::anon));
 
     {
         Options opt2 = opt1;
@@ -384,7 +384,7 @@ void test_rs_options_non_sequential_containers() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"
@@ -422,11 +422,11 @@ void test_rs_options_match_pattern() {
     std::string g = "Goodbye";
     std::string f = "Fubar";
 
-    Options opt1("Hello", "1.0", "Says hello.");
-    TRY(opt1.add(h, "hello", 'h', "He.*", 0, "Hello option"));
-    TRY(opt1.add(g, "goodbye", 'g', "Go.*", 0, "Goodbye option"));
-    TEST_THROW(opt1.add(f, "fubar", 'f', "*", 0, "Fubar option"), std::regex_error);
-    TEST_THROW(opt1.add(f, "fubar", 'f', "fu.*", 0, "Fubar option"), std::invalid_argument);
+    Options opt1("Hello", "", "Says hello.");
+    TRY(opt1.add(h, "hello", 'h', "Hello option", 0, "He.*"));
+    TRY(opt1.add(g, "goodbye", 'g', "Goodbye option", 0, "Go.*"));
+    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "*"), std::regex_error);
+    TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "fu.*"), std::invalid_argument);
 
     {
         Options opt2 = opt1;
@@ -435,7 +435,7 @@ void test_rs_options_match_pattern() {
         TEST(! opt2.parse({}, out));
         TEST_EQUAL(out.str(),
             "\n"
-            "Hello 1.0\n"
+            "Hello\n"
             "\n"
             "Says hello.\n"
             "\n"

@@ -16,10 +16,14 @@ namespace RS::Options {
 
     }
 
-    Options::Options(const std::string& app, const std::string& version, const std::string& description,
-        const std::string& extra):
-    options_(), app_(trim(app)), version_(trim(version)), description_(trim(description)),
-    extra_(trim(extra)), auto_help_(false) {
+    Options::Options(const std::string& app, const std::string& version,
+        const std::string& description, const std::string& extra):
+    options_(),
+    app_(trim(app)),
+    version_(trim(version)),
+    description_(trim(description)),
+    extra_(trim(extra)),
+    auto_help_(false) {
         if (app.empty())
             throw std::invalid_argument("No application name was supplied");
         if (description.empty())
@@ -34,8 +38,8 @@ namespace RS::Options {
         char version_abbrev = option_index('v') == npos ? 'v' : '\0';
         bool want_help = false;
         bool want_version = false;
-        add(want_help, "help", help_abbrev, "", 0, "Show help");
-        add(want_version, "version", version_abbrev, "", 0, "Show version");
+        add(want_help, "help", help_abbrev, "Show help");
+        add(want_version, "version", version_abbrev, "Show version");
 
         if (auto_help_ && args.empty()) {
             out << format_help();
@@ -165,8 +169,8 @@ namespace RS::Options {
     }
 
     void Options::do_add(setter_type setter, const std::regex& pattern, const std::string& name, char abbrev,
-            int flags, const std::string& description, const std::string& placeholder,
-            const std::string& default_value, mode kind) {
+            const std::string& description, const std::string& placeholder, const std::string& default_value,
+            mode kind, int flags) {
 
         bool anon_complete = false;
         option_info info;

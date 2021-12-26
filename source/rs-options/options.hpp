@@ -49,9 +49,9 @@ namespace RS::Options {
     }
 
     // TODO
+    // * Colour output
     // * Mutually exclusive option groups
     // * Enumeration valued options
-    // * Option to accept SI tags on numbers
 
     class Options {
 
@@ -62,11 +62,11 @@ namespace RS::Options {
             required  = 2,  // Required option
         };
 
-        Options(const std::string& app, const std::string& version, const std::string& description,
-            const std::string& extra = {});
+        Options(const std::string& app, const std::string& version,
+            const std::string& description, const std::string& extra = {});
 
         template <typename T> Options& add(T& var, const std::string& name, char abbrev,
-            const std::string& pattern, int flags, const std::string& description);
+            const std::string& description, int flags = 0, const std::string& pattern = {});
         void auto_help() noexcept { auto_help_ = true; }
         bool parse(std::vector<std::string> args, std::ostream& out = std::cout);
         bool parse(int argc, char** argv, std::ostream& out = std::cout);
@@ -100,8 +100,8 @@ namespace RS::Options {
         bool auto_help_;
 
         void do_add(setter_type setter, const std::regex& pattern, const std::string& name, char abbrev,
-            int flags, const std::string& description, const std::string& placeholder,
-            const std::string& default_value, mode kind);
+            const std::string& description, const std::string& placeholder, const std::string& default_value,
+            mode kind, int flags);
         std::string format_help() const;
         size_t option_index(const std::string& name) const;
         size_t option_index(char abbrev) const;
@@ -114,7 +114,7 @@ namespace RS::Options {
 
         template <typename T>
         Options& Options::add(T& var, const std::string& name, char abbrev,
-                const std::string& pattern, int flags, const std::string& description) {
+                const std::string& description, int flags, const std::string& pattern) {
 
             using namespace Detail;
             using namespace RS::Format;
@@ -172,7 +172,7 @@ namespace RS::Options {
 
             }
 
-            do_add(setter, re, name, abbrev, flags, description, placeholder, default_value, kind);
+            do_add(setter, re, name, abbrev, description, placeholder, default_value, kind, flags);
 
             return *this;
 
