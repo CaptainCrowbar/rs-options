@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.18)
 # and propagate the new version to version.hpp.
 
 project(Skeleton
-    VERSION 0.1.13
+    VERSION 0.2.1
     LANGUAGES CXX
 )
 
@@ -46,6 +46,7 @@ function(check_for_library required library header repo)
 endfunction()
 
 check_for_library(yes rs-format rs-format.hpp https://github.com/CaptainCrowbar/rs-format)
+check_for_library(yes rs-regex rs-regex.hpp https://github.com/CaptainCrowbar/rs-regex)
 check_for_library(no rs-unit-test rs-unit-test.hpp https://github.com/CaptainCrowbar/rs-unit-test)
 
 set(library rs-options)
@@ -65,6 +66,8 @@ add_executable(${unittest}
 
 target_link_libraries(${unittest}
     PRIVATE ${library}
+    PRIVATE pcre2-8
+    PRIVATE rs-regex
     PRIVATE Threads::Threads
 )
 

@@ -152,7 +152,8 @@ Adds an option to the configuration. The arguments are:
   the same group is supplied.
 * `pattern` -- Set this to a non-empty string to supply a regular expression
   that any arguments attached to this option must match. This is only usable
-  with string-valued options.
+  with string-valued options. Prefix the pattern with `"(?i)"` for case
+  insensitive matching.
 
 The variable into which the parsed value is written must be one of the
 following types:
@@ -199,7 +200,7 @@ conditions:
   (which will have already swallowed up any remaining unattached arguments).
 * A required option is in a mutual exclusion group.
 * A pattern is supplied for a variable of any type other than `std::string`.
-* The pattern is not a valid regular expression (using `std::regex`).
+* The pattern is not a valid regular expression (using PCRE2).
 * Both a default value and a pattern are supplied, but the value does not match the pattern.
 * A container variable is not empty (container-valued options can't have default values).
 * You try to create the `--help` or `--version` options manually.

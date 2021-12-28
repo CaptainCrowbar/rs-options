@@ -3,12 +3,12 @@
 #include "rs-format/enum.hpp"
 #include "rs-format/format.hpp"
 #include "rs-format/string.hpp"
+#include "rs-regex/regex.hpp"
 #include <algorithm>
 #include <functional>
 #include <iostream>
 #include <iterator>
 #include <ostream>
-#include <regex>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -221,6 +221,7 @@ namespace RS::Options {
         Options::validator_type Options::type_validator(const std::string& name, std::string pattern) {
 
             using namespace RS::Format::Literals;
+            using Regex = RS::Regex::Regex;
 
             validator_type validator;
 
@@ -241,14 +242,14 @@ namespace RS::Options {
                 pattern = R"([+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?)";
 
             if (! pattern.empty()) {
-                std::regex re;
+                Regex re;
                 try {
-                    re = std::regex(pattern);
+                    re = Regex(pattern, Regex::full | Regex::no_capture);
                 }
-                catch (const std::regex_error&) {
-                    throw setup_error("Invalid regular expression: {0:q}"_fmt(pattern));
+                catch (const Regex::error& ex) {
+                    throw setup_error(ex.what());
                 }
-                validator = [re] (const std::string& str) { return std::regex_match(str, re); };
+                validator = [re] (const std::string& str) { return re(str).matched(); };
             }
 
             return validator;

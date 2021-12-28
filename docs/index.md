@@ -13,10 +13,11 @@ namespace RS::Options;
 
 This is my command line option parsing library.
 
-This uses my [formatting](https://github.com/CaptainCrowbar/rs-format) and
-[unit test](https://github.com/CaptainCrowbar/rs-unit-test) libraries. Both of
-these are header-only libraries; the unit test library is not required if you
-only want to use this library without building its unit tests.
+This uses my [formatting library](https://github.com/CaptainCrowbar/rs-format),
+[PCRE2 C++ wrapper](https://github.com/CaptainCrowbar/rs-regex),
+and [unit test library](https://github.com/CaptainCrowbar/rs-unit-test).
+The unit test library is not required if you only want to use this library
+without building its unit tests.
 
 ## Index
 

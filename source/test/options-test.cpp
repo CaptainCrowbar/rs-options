@@ -460,7 +460,7 @@ void test_rs_options_match_pattern() {
     Options opt1("Hello", "", "Says hello.");
     TRY(opt1.set_colour(false));
     TRY(opt1.add(h, "hello", 'h', "Hello option", 0, "", "He.*"));
-    TRY(opt1.add(g, "goodbye", 'g', "Goodbye option", 0, "", "Go.*"));
+    TRY(opt1.add(g, "goodbye", 'g', "Goodbye option", 0, "", "(?i)go.*"));
     TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "*"), Options::setup_error);
     TEST_THROW(opt1.add(f, "fubar", 'f', "Fubar option", 0, "", "fu.*"), Options::setup_error);
 
