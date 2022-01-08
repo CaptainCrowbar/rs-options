@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.18)
 # Run rs-bump-version to increment the patch number
 # and propagate the new version to version.hpp.
 
-project(Skeleton
-    VERSION 0.2.2
+project(rs-options
+    VERSION 0.2.3
     LANGUAGES CXX
 )
 
@@ -60,7 +60,16 @@ add_library(${library} STATIC
 
 add_executable(${unittest}
     test/version-test.cpp
-    test/options-test.cpp
+    test/options-traits-test.cpp
+    test/options-help-test.cpp
+    test/options-parsing-test.cpp
+    test/options-required-test.cpp
+    test/options-boolean-test.cpp
+    test/options-anonymous-test.cpp
+    test/options-container-test.cpp
+    test/options-pattern-match-test.cpp
+    test/options-enumeration-test.cpp
+    test/options-mutual-exclusion-test.cpp
     test/unit-test.cpp
 )
 

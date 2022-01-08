@@ -7,18 +7,36 @@ int main(int argc, char** argv) {
     RS::UnitTest::begin_tests(argc, argv);
 
     // version-test.cpp
-    UNIT_TEST(skeleton_version)
+    UNIT_TEST(options_version)
 
-    // options-test.cpp
-    UNIT_TEST(rs_options_type_traits)
-    UNIT_TEST(rs_options_basic_help)
-    UNIT_TEST(rs_options_simple_parsing)
-    UNIT_TEST(rs_options_required_options)
-    UNIT_TEST(rs_options_multiple_booleans)
-    UNIT_TEST(rs_options_anonymous_options)
-    UNIT_TEST(rs_options_non_sequential_containers)
-    UNIT_TEST(rs_options_match_pattern)
-    UNIT_TEST(rs_options_enumeration_types)
+    // options-traits-test.cpp
+    UNIT_TEST(rs_options_traits)
+
+    // options-help-test.cpp
+    UNIT_TEST(rs_options_help)
+
+    // options-parsing-test.cpp
+    UNIT_TEST(rs_options_parsing)
+
+    // options-required-test.cpp
+    UNIT_TEST(rs_options_required)
+
+    // options-boolean-test.cpp
+    UNIT_TEST(rs_options_boolean)
+
+    // options-anonymous-test.cpp
+    UNIT_TEST(rs_options_anonymous)
+
+    // options-container-test.cpp
+    UNIT_TEST(rs_options_container)
+
+    // options-pattern-match-test.cpp
+    UNIT_TEST(rs_options_pattern_match)
+
+    // options-enumeration-test.cpp
+    UNIT_TEST(rs_options_enumeration)
+
+    // options-mutual-exclusion-test.cpp
     UNIT_TEST(rs_options_mutual_exclusion)
 
     // unit-test.cpp

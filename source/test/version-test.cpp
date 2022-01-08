@@ -3,7 +3,7 @@
 
 using namespace RS::Option;
 
-void test_skeleton_version() {
+void test_options_version() {
 
     TEST_EQUAL(version()[0], 0);
     TEST_IN_RANGE(version()[1], 0, 100);
