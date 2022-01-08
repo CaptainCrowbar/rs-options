@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-namespace RS::Options {
+namespace RS::Option {
 
     namespace Detail {
 
@@ -221,7 +221,7 @@ namespace RS::Options {
         Options::validator_type Options::type_validator(const std::string& name, std::string pattern) {
 
             using namespace RS::Format::Literals;
-            using Regex = RS::Regex::Regex;
+            using namespace RS::RE;
 
             validator_type validator;
 

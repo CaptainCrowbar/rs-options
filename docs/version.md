@@ -4,7 +4,7 @@ _[Options Library by Ross Smith](index.html)_
 
 ```c++
 #include "rs-options/version.hpp"
-namespace RS::Options;
+namespace RS::Option;
 ```
 
 This header supplies library version information.

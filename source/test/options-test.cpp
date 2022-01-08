@@ -10,13 +10,13 @@
 #include <vector>
 
 using namespace RS::Format;
-using namespace RS::Options;
+using namespace RS::Option;
 
 RS_DEFINE_ENUM_CLASS(MyEnum, int, 0, alpha, bravo, charlie)
 
 void test_rs_options_type_traits() {
 
-    using namespace RS::Options::Detail;
+    using namespace RS::Option::Detail;
 
     TEST(! HasBackInserter<void>::value);
     TEST(! HasBackInserter<int>::value);

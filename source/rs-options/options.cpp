@@ -6,7 +6,7 @@ using namespace RS::Format;
 using namespace RS::Format::Literals;
 using namespace std::literals;
 
-namespace RS::Options {
+namespace RS::Option {
 
     namespace {
 

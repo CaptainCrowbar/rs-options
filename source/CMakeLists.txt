@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.18)
 # and propagate the new version to version.hpp.
 
 project(Skeleton
-    VERSION 0.2.1
+    VERSION 0.2.2
     LANGUAGES CXX
 )
 

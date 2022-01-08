@@ -1,7 +1,7 @@
 #include "rs-options/version.hpp"
 #include "rs-unit-test.hpp"
 
-using namespace RS::Options;
+using namespace RS::Option;
 
 void test_skeleton_version() {
 

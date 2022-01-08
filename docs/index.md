@@ -8,7 +8,7 @@ _[GitHub repository](https://github.com/CaptainCrowbar/rs-options)_
 
 ```c++
 #include "rs-options.hpp"
-namespace RS::Options;
+namespace RS::Option;
 ```
 
 This is my command line option parsing library.

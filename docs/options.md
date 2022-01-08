@@ -4,7 +4,7 @@ _[Options Library by Ross Smith](index.html)_
 
 ```c++
 #include "rs-options/options.hpp"
-namespace RS::Options;
+namespace RS::Option;
 ```
 
 ## Contents
