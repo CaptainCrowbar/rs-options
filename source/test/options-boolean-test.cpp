@@ -13,12 +13,14 @@ void test_rs_options_boolean() {
     bool a = false;
     bool b = false;
     bool c = false;
+    std::string d;
 
     Options opt1("Hello", "", "Says hello.");
     TRY(opt1.set_colour(false));
     TRY(opt1.add(a, "alpha", 'a', "Alpha option"));
     TRY(opt1.add(b, "bravo", 'b', "Bravo option"));
     TRY(opt1.add(c, "charlie", 'c', "Charlie option"));
+    TRY(opt1.add(d, "delta", 'd', "Delta option", Options::anon));
 
     {
         Options opt2 = opt1;
@@ -32,11 +34,12 @@ void test_rs_options_boolean() {
             "Says hello.\n"
             "\n"
             "Options:\n"
-            "    --alpha, -a    = Alpha option\n"
-            "    --bravo, -b    = Bravo option\n"
-            "    --charlie, -c  = Charlie option\n"
-            "    --help, -h     = Show usage information\n"
-            "    --version, -v  = Show version information\n"
+            "    --alpha, -a          = Alpha option\n"
+            "    --bravo, -b          = Bravo option\n"
+            "    --charlie, -c        = Charlie option\n"
+            "    [--delta, -d] <arg>  = Delta option\n"
+            "    --help, -h           = Show usage information\n"
+            "    --version, -v        = Show version information\n"
             "\n"
         );
     }
@@ -51,9 +54,44 @@ void test_rs_options_boolean() {
         TEST(opt2.found("alpha"));
         TEST(opt2.found("bravo"));
         TEST(opt2.found("charlie"));
+        TEST(! opt2.found("delta"));
         TEST(a);
         TEST(b);
         TEST(c);
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "-abcd", "hello"
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("alpha"));
+        TEST(opt2.found("bravo"));
+        TEST(opt2.found("charlie"));
+        TEST(opt2.found("delta"));
+        TEST(a);
+        TEST(b);
+        TEST(c);
+        TEST_EQUAL(d, "hello");
+    }
+
+    {
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "-abc", "hello"
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("alpha"));
+        TEST(opt2.found("bravo"));
+        TEST(opt2.found("charlie"));
+        TEST(opt2.found("delta"));
+        TEST(a);
+        TEST(b);
+        TEST(c);
+        TEST_EQUAL(d, "hello");
     }
 
 }

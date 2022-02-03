@@ -70,8 +70,10 @@ namespace RS::Option {
                 groups_found.insert(opt.group);
             }
             opt.found = true;
-            if (opt.kind == mode::boolean)
+            if (opt.kind == mode::boolean) {
                 opt.setter({});
+                current = nullptr;
+            }
         };
 
         while (i < args.size()) {
