@@ -1,9 +1,9 @@
 #pragma once
 
-#include "rs-format/enum.hpp"
 #include "rs-format/format.hpp"
 #include "rs-format/string.hpp"
 #include "rs-regex/regex.hpp"
+#include "rs-tl/enum.hpp"
 #include <algorithm>
 #include <functional>
 #include <iostream>
