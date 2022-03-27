@@ -65,8 +65,9 @@ namespace RS::Option {
     public:
 
         enum flag_type: int {
-            anon      = 1,  // Arguments not claimed by other options are assigned to this
-            required  = 2,  // Required option
+            anon        = 1,  // Arguments not claimed by other options are assigned to this
+            no_default  = 2,  // Don't show default value in help
+            required    = 4,  // Required option
         };
 
         class setup_error:
@@ -111,6 +112,7 @@ namespace RS::Option {
             char abbrev = '\0';
             mode kind = mode::single;
             bool is_anon = false;
+            bool is_no_default = false;
             bool is_required = false;
             bool found = false;
         };

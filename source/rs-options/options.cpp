@@ -209,6 +209,7 @@ namespace RS::Option {
         info.abbrev = abbrev;
         info.kind = kind;
         info.is_anon = (flags & anon) != 0;
+        info.is_no_default = (flags & no_default) != 0;
         info.is_required = (flags & required) != 0;
 
         std::string long_name = "--" + info.name;
@@ -289,10 +290,10 @@ namespace RS::Option {
 
             left.push_back(block);
             left_width = std::max(left_width, block.size());
-
             block = info.description;
+            bool show_default = ! info.is_no_default && ! info.default_value.empty();
 
-            if (info.is_required || ! info.default_value.empty()) {
+            if (info.is_required || show_default) {
                 if (block.back() == ')') {
                     block.pop_back();
                     block += "; ";
@@ -301,7 +302,7 @@ namespace RS::Option {
                 }
                 if (info.is_required)
                     block += "required";
-                else
+                else if (show_default)
                     block += "default " + info.default_value;
                 block += ")";
             }

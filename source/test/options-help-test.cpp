@@ -53,4 +53,32 @@ void test_rs_options_help() {
         );
     }
 
+    int a = 86;
+    int b = 99;
+
+    TRY(opt1.add(a, "alpha", 'a', "Alpha option"));
+    TRY(opt1.add(b, "bravo", 'b', "Bravo option", Options::no_default));
+
+    {
+        Options opt2 = opt1;
+        TRY(opt2.set_colour(false));
+        std::ostringstream out;
+        TEST(! opt2.parse({}, out));
+        TEST_EQUAL(out.str(),
+            "\n"
+            "Hello 1.0\n"
+            "\n"
+            "Says hello.\n"
+            "\n"
+            "Options:\n"
+            "    --alpha, -a <int>  = Alpha option (default 86)\n"
+            "    --bravo, -b <int>  = Bravo option\n"
+            "    --help, -h         = Show usage information\n"
+            "    --version, -v      = Show version information\n"
+            "\n"
+            "Also says goodbye.\n"
+            "\n"
+        );
+    }
+
 }

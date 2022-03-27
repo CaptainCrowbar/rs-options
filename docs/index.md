@@ -88,6 +88,7 @@ the following information on standard output:
 ```c++
 enum Options::flag_type;
     Options::anon;
+    Options::no_default;
     Options::required;
 ```
 
@@ -97,6 +98,9 @@ The `anon` flag indicates that the option name can be left out on the command
 line; the first unclaimed argument (not yet assigned to any other option)
 will be assigned to it. If this is a container-valued option, all remaining
 unclaimed arguments will be assigned to it.
+
+The `no_default` flag suppresses the display of the default value in the help
+text.
 
 The `required` flag indicates that this option must be supplied (this does not
 apply if the user selects the `--help` or `--version` options).
