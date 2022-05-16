@@ -53,7 +53,7 @@ namespace RS::Option {
         template <typename T>
         T parse_enum_unchecked(const std::string& arg) {
             // The string has already been validated
-            T t;
+            T t = {};
             parse_enum(arg, t);
             return t;
         }

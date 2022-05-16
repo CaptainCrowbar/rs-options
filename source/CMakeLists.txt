@@ -75,8 +75,8 @@ add_executable(${unittest}
 
 target_link_libraries(${unittest}
     PRIVATE ${library}
-    PRIVATE pcre2-8
     PRIVATE rs-regex
+    PRIVATE pcre2-8
     PRIVATE Threads::Threads
 )
 
