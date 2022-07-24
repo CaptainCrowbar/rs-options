@@ -158,7 +158,7 @@ namespace RS::Option {
 
             if constexpr (std::is_same_v<T, bool>) {
 
-                setter = [&var] (const std::string& /*str*/) { var = true; };
+                setter = [&var] (const std::string& str) { var = to_boolean(str); };
                 kind = mode::boolean;
 
             } else if constexpr (is_scalar_argument_type<T>) {
@@ -209,6 +209,8 @@ namespace RS::Option {
                 return parse_enum_unchecked<T>(arg);
             else if constexpr (std::is_same_v<T, std::string>)
                 return arg;
+            else if constexpr (std::is_same_v<T, bool>)
+                return to_boolean(arg);
             else if constexpr (std::is_integral_v<T>)
                 return to_integer<T>(arg);
             else if constexpr (std::is_floating_point_v<T>)

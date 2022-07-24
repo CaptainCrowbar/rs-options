@@ -41,6 +41,7 @@ commonly expected command line features:
 * Options can be followed by arguments, delimited by a space or an equals sign, e.g. `--name value` or `--name=value`.
 * Options can have default arguments.
 * Options may take multiple arguments, e.g. `--option arg1 arg2 arg3`.
+* Boolean options can be prefixed with `--no-` to invert them.
 * An option's arguments can be checked against a regular expression.
 * Unattached arguments can be implicitly assigned to options.
 * Sets of mutually exclusive options can be specified.

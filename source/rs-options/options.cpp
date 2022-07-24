@@ -57,10 +57,11 @@ namespace RS::Option {
 
         std::set<std::string> groups_found;
         option_info* current = nullptr;
-        size_t i = 0;
+        size_t arg_index = 0;
         bool escaped = false;
+        bool paired = false;
 
-        auto on_match = [this,&current,&groups_found] (option_info& opt) {
+        auto on_match = [this,&current,&groups_found,&paired] (option_info& opt) {
             current = &opt;
             if (opt.found && opt.kind != mode::multiple)
                 throw user_error("Repeated option: --" + opt.name);
@@ -70,15 +71,15 @@ namespace RS::Option {
                 groups_found.insert(opt.group);
             }
             opt.found = true;
-            if (opt.kind == mode::boolean) {
-                opt.setter({});
+            if (opt.kind == mode::boolean && !paired) {
+                opt.setter("t");
                 current = nullptr;
             }
         };
 
-        while (i < args.size()) {
+        while (arg_index < args.size()) {
 
-            auto& arg = args[i];
+            const auto& arg = args[arg_index];
 
             if (escaped || arg[0] != '-') {
 
@@ -104,36 +105,55 @@ namespace RS::Option {
                 }
                 if (current->kind != mode::multiple)
                     current = nullptr;
-                ++i;
+                paired = false;
+                ++arg_index;
 
             } else if (arg == "--") {
 
                 // Remaining arguments can't be options
 
                 escaped = true;
-                ++i;
+                ++arg_index;
 
             } else if (arg[0] == '-' && arg[1] == '-') {
 
                 size_t eq_pos = arg.find('=');
 
-                if (eq_pos >= 4 && eq_pos != npos) {
-
-                    // Long option name and value combined
-
-                    auto suffix = arg.substr(eq_pos + 1);
-                    arg.resize(eq_pos);
-                    args.insert(args.begin() + i + 1, suffix);
-
-                } else {
+                if (eq_pos == npos) {
 
                     // Long option name
 
-                    size_t j = option_index(arg.substr(2));
-                    if (j == npos)
-                        throw user_error("Unknown option: {0:q}"_fmt(arg));
-                    on_match(options_[j]);
-                    ++i;
+                    size_t opt_index = npos;
+                    bool invert = false;
+                    if (starts_with(arg, "--no-")) {
+                        opt_index = option_index(arg.substr(5));
+                        if (opt_index != npos && options_[opt_index].kind == mode::boolean)
+                            invert = paired = true;
+                    }
+                    if (! invert) {
+                        opt_index = option_index(arg.substr(2));
+                        if (opt_index == npos)
+                            throw user_error("Unknown option: {0:q}"_fmt(arg));
+                    }
+                    on_match(options_[opt_index]);
+                    ++arg_index;
+                    if (invert)
+                        args.insert(args.begin() + arg_index, "f");
+
+                } else if (eq_pos >= 4) {
+
+                    // Long option name and value combined
+
+                    auto key = arg.substr(0, eq_pos);
+                    auto value = arg.substr(eq_pos + 1);
+                    args.erase(args.begin() + arg_index);
+                    args.insert(args.begin() + arg_index, key);
+                    args.insert(args.begin() + arg_index + 1, value);
+                    paired = true;
+
+                } else {
+
+                    throw user_error("Invalid option: {0:q}"_fmt(arg));
 
                 }
 
@@ -144,7 +164,7 @@ namespace RS::Option {
                 std::vector<std::string> new_args;
                 for (char c: arg.substr(1))
                     new_args.push_back({'-', c});
-                auto it = args.begin() + i;
+                auto it = args.begin() + arg_index;
                 args.erase(it);
                 args.insert(it, new_args.begin(), new_args.end());
 
@@ -152,11 +172,12 @@ namespace RS::Option {
 
                 // Short option name
 
-                size_t j = option_index(arg[1]);
-                if (j == npos)
+                paired = false;
+                size_t opt_index = option_index(arg[1]);
+                if (opt_index == npos)
                     throw user_error("Unknown option: {0:q}"_fmt(arg));
-                on_match(options_[j]);
-                ++i;
+                on_match(options_[opt_index]);
+                ++arg_index;
 
             }
 

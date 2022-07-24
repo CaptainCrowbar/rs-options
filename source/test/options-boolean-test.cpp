@@ -45,6 +45,8 @@ void test_rs_options_boolean() {
     }
 
     {
+        a = b = c = false;
+        d.clear();
         Options opt2 = opt1;
         std::ostringstream out;
         TEST(opt2.parse({
@@ -61,6 +63,8 @@ void test_rs_options_boolean() {
     }
 
     {
+        a = b = c = false;
+        d.clear();
         Options opt2 = opt1;
         std::ostringstream out;
         TEST(opt2.parse({
@@ -78,6 +82,8 @@ void test_rs_options_boolean() {
     }
 
     {
+        a = b = c = false;
+        d.clear();
         Options opt2 = opt1;
         std::ostringstream out;
         TEST(opt2.parse({
@@ -92,6 +98,42 @@ void test_rs_options_boolean() {
         TEST(b);
         TEST(c);
         TEST_EQUAL(d, "hello");
+    }
+
+    {
+        a = b = c = false;
+        d.clear();
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "--alpha=true", "--bravo=false"
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("alpha"));
+        TEST(opt2.found("bravo"));
+        TEST(! opt2.found("charlie"));
+        TEST(! opt2.found("delta"));
+        TEST(a);
+        TEST(! b);
+        TEST(! c);
+    }
+
+    {
+        a = b = c = true;
+        d.clear();
+        Options opt2 = opt1;
+        std::ostringstream out;
+        TEST(opt2.parse({
+            "--no-alpha", "--no-bravo"
+        }, out));
+        TEST_EQUAL(out.str(), "");
+        TEST(opt2.found("alpha"));
+        TEST(opt2.found("bravo"));
+        TEST(! opt2.found("charlie"));
+        TEST(! opt2.found("delta"));
+        TEST(! a);
+        TEST(! b);
+        TEST(c);
     }
 
 }
